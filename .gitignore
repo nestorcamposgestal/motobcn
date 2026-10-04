@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 node_modules/
 design/prototipo/data/
+design/interfaz/data/
+web/public/data/
