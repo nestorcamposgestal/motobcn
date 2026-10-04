@@ -36,6 +36,10 @@ export function useSwipeDown(onClose: () => void, { scroller, base, settle }: Sw
     g.current = null;
     if (!s?.on) return;
     const reset = () => { el.style.transition = ""; el.style.transform = ""; };
+    // A short drag can still fire a click when the finger lifts; it must not undo what the drag did.
+    const swallow = (c: MouseEvent) => c.stopPropagation();
+    el.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => el.removeEventListener("click", swallow, { capture: true }), 400);
     // Clear the drag offset after the new state renders, so the sheet moves on from where the finger left it.
     if (settle) settle(s.dy, s.v);
     else if (s.dy > 80) onClose();
@@ -101,8 +105,9 @@ export function Panel({ open, label, onClose, ref, children }: PanelProps) {
       if (peek) {
         if (dy < -30 || v < -0.4) setPeek(false);
         else if (dy > 30 || v > 0.6) onClose();
-      } else if ((v > 0.8 && dy > 30) || dy > (el.current?.offsetHeight ?? 0) * 0.6) onClose();
-      else if (dy > 60) setPeek(true);
+      } else if ((v > 0.5 && dy > 140) || dy > (el.current?.offsetHeight ?? 0) * 0.6) onClose();
+      // A short flick or a calm drag leaves it compact.
+      else if (dy > 60 || (v > 0.3 && dy > 15)) setPeek(true);
     },
   });
   return (
