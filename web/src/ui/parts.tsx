@@ -169,16 +169,16 @@ export function Nearby({ cards, isUser, active, onActive, onOpen, onClose, side 
     }, 140);
   };
   return (
-    <section className={side ? "absolute z-20 left-4 top-[136px] w-[380px] max-h-[calc(100%-152px)] flex flex-col gap-2"
+    <section className={side ? "side-panel absolute z-20 left-4 top-[136px] w-[380px] max-h-[calc(100%-152px)] flex flex-col"
       : "flex flex-col gap-2 pointer-events-auto"} aria-label="Opciones cercanas">
-      <div className={`flex items-center gap-2 ${side ? "" : "px-4"}`}>
-        <p className="float m-0 rounded-2xl px-3 py-1.5 label leading-[18px] whitespace-nowrap">
+      <div className={`flex items-center gap-2 ${side ? "pl-5 pr-2 pt-3 pb-1" : "px-4"}`}>
+        <p className={`m-0 label leading-[18px] whitespace-nowrap ${side ? "" : "float rounded-2xl px-3 py-1.5"}`}>
           {isUser ? "Cerca de ti" : "Cerca del centro del mapa"}{" "}
           <span className="font-mono font-medium normal-case tracking-normal text-tinta-suau">· {cards.length}<span className="sr-only"> {cards.length === 1 ? "opción" : "opciones"}</span></span>
         </p>
-        <button type="button" className="icon-btn float ml-auto" onClick={onClose} aria-label="Cerrar opciones cercanas"><X size={20} strokeWidth={1.75} /></button>
+        <button type="button" className={`icon-btn ml-auto ${side ? "" : "float !bg-pedra-100"}`} onClick={onClose} aria-label="Cerrar opciones cercanas"><X size={20} strokeWidth={1.75} /></button>
       </div>
-      <ol className={side ? "m-0 p-1 list-none flex flex-col gap-3 overflow-auto overscroll-contain" : "cards"} onScroll={side ? undefined : onScroll}>
+      <ol className={side ? "m-0 px-3 pt-1 pb-3 list-none flex flex-col gap-3 overflow-auto overscroll-contain" : "cards"} onScroll={side ? undefined : onScroll}>
         {cards.length ? cards.map(({ o, m }, i) => (
           <li key={o.kind + o.id} className="card float rounded-[16px] p-3.5 flex flex-col gap-3" aria-current={i === active}>
             <button type="button" className="flex flex-col gap-1.5 w-full p-0 border-0 bg-transparent text-left rounded-[8px]"

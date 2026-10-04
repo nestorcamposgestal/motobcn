@@ -119,6 +119,12 @@
   .card[aria-current="true"] { border-color: var(--tinta); box-shadow: 0 0 0 1px var(--tinta), var(--shadow-float); }
   .card:not([aria-current="true"]) .btn-primary { background: transparent; color: var(--mar); box-shadow: inset 0 0 0 1.5px var(--mar); }
 
+  /* Nearby options on wide screens: one panel like the detail sheet, with a thin scrollbar in the theme colours. */
+  .side-panel { background: var(--pedra-100); border: 1px solid var(--linia); border-radius: var(--radius-lg); box-shadow: var(--shadow-float); overflow: hidden; }
+  .side-panel ol { scrollbar-width: thin; scrollbar-color: var(--linia) transparent; }
+  .side-panel .card { background: var(--pedra-50); }
+  .side-panel .card:not([aria-current="true"]) { box-shadow: none; }
+
   .toggle { display: block; position: relative; width: 52px; height: 32px; flex: none; border-radius: 16px; border: 1px solid var(--linia); background: var(--pedra-200); }
   .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--pedra-100);
     box-shadow: 0 1px 3px var(--drop); transition: transform .2s; }
