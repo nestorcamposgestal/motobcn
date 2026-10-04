@@ -6,3 +6,4 @@ node_modules/
 design/prototipo/data/
 design/interfaz/data/
 web/public/data/
+.env

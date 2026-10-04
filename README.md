@@ -10,9 +10,20 @@ Mapa de los sitios donde se puede aparcar una moto en Barcelona, también en la 
 
 ## Pipeline
 
-Requiere `uv`.
+Requiere `uv` y `tippecanoe`.
 
     cd pipeline
     uv run pytest -q
+    uv run python build.py
 
-Los datos descargados se guardan en `data/raw/`. Para descargar una fuente otra vez, borra su carpeta.
+`build.py` genera `data/out/motobcn.pmtiles` y `meta.json` y los copia a `web/public/data/`. Los datos descargados se guardan en `data/raw/`: para descargar una fuente otra vez, borra su carpeta. Con las variables `TMB_APP_ID` y `TMB_APP_KEY` usa el GTFS oficial de TMB (por ejemplo, `uv run --env-file .env python build.py`).
+
+## Web
+
+    cd web
+    npm install
+    npm run dev
+
+## Publicación
+
+`.github/workflows/deploy.yml` genera los datos, compila la web y la publica en GitHub Pages en cada push a `main` y una vez al mes. Las claves de TMB son secretos del repositorio.

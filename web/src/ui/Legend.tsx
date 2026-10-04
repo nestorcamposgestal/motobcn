@@ -98,7 +98,7 @@ export function Legend({ theme, pref, onPref, risk, onRisk, meta, onClose }: Pro
           <p className="m-0">En el mapa: {Object.entries(km).map(([s, v]) => `${fmt(v)} km ${KM[s] ?? s}`).join(", ")}.</p>
         )}
         <p className="m-0">
-          Font de les dades: Ajuntament de Barcelona, TMB, AMB, TRAM y © colaboradores de OpenStreetMap.
+          Font de les dades: Ajuntament de Barcelona, TMB, AMB, Powered by TRAM Barcelona y © OpenStreetMap contributors (ODbL).
           {meta && " " + Object.entries(meta.sources).map(([k, s]) => `${SOURCE[k] ?? k} (${when(s.data_date)})`).join(", ") + "."}
         </p>
         {meta?.built && <p className="m-0">Datos preparados el {new Date(meta.built + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}.</p>}

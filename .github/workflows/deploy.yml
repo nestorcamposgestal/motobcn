@@ -1,0 +1,54 @@
+name: Build and deploy
+
+# The data comes from open sources that change every month, so a monthly run keeps the map current.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 4 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y tippecanoe
+      - uses: astral-sh/setup-uv@v6
+      - name: Build map data
+        working-directory: pipeline
+        env:
+          TMB_APP_ID: ${{ secrets.TMB_APP_ID }}
+          TMB_APP_KEY: ${{ secrets.TMB_APP_KEY }}
+        run: uv run python build.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build web app
+        working-directory: web
+        run: npm ci && npm test && npm run build -- --base=/${{ github.event.repository.name }}/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

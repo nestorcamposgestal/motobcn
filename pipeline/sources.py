@@ -6,6 +6,7 @@ Run this file to load every source and write data/raw/manifest.json with the URL
 """
 
 import json
+import os
 import shutil
 import sqlite3
 import time
@@ -38,6 +39,7 @@ GTFS_FEEDS = [
     ("tram", "tram_tbx.zip", "https://opendata.tram.cat/GTFS/zip/TBX.zip", "tram", None),
     ("tram", "tram_tbs.zip", "https://opendata.tram.cat/GTFS/zip/TBS.zip", "tram", None),
 ]
+TMB_API = "https://api.tmb.cat/v1/static/datasets/gtfs.zip"
 OVERPASS = "https://overpass-api.de/api/interpreter?data="
 OSM_COPYRIGHT = "https://www.openstreetmap.org/copyright"
 OSM_STOPS = """[out:json][timeout:180];
@@ -45,6 +47,17 @@ area["boundary"="administrative"]["admin_level"="8"]["name"="Barcelona"]["wikida
 (nwr["highway"="bus_stop"](area.a); nwr["public_transport"="platform"]["bus"="yes"](area.a);
  nwr["railway"="tram_stop"](area.a); nwr["public_transport"="platform"]["tram"="yes"](area.a););
 out center tags;"""
+
+
+def _tmb_keys(mirror: str) -> str:
+    """The official TMB feed when TMB_APP_ID and TMB_APP_KEY are set, else the public mirror.
+
+    The keys stay out of GTFS_FEEDS so that manifest.json, which the app publishes, never holds them.
+    """
+    app_id, app_key = os.environ.get("TMB_APP_ID"), os.environ.get("TMB_APP_KEY")
+    if not (app_id and app_key):
+        return mirror
+    return f"{TMB_API}?{urllib.parse.urlencode({'app_id': app_id, 'app_key': app_key})}"
 
 
 def fetch(dest: Path, url) -> Path:
@@ -251,7 +264,7 @@ def transit_stops() -> gpd.GeoDataFrame:
     """
     gtfs = []
     for source, name, url, mode, route_types in GTFS_FEEDS:
-        stops = _gtfs_stops(fetch(RAW / "transit" / name, url), route_types)
+        stops = _gtfs_stops(fetch(RAW / "transit" / name, _tmb_keys(url) if source == "tmb" else url), route_types)
         gtfs.append(stops.assign(mode=mode, source=source))
     gtfs = pd.concat(gtfs, ignore_index=True)
     osm = _osm_stops().assign(source="osm")
