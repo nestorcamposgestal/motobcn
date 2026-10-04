@@ -1,4 +1,4 @@
-import { useRef, type ReactNode, type Ref, type UIEvent } from "react";
+import { useRef, type ReactNode, type Ref, type TouchEvent, type UIEvent } from "react";
 import { Motorbike, Navigation, Receipt, Scale, SquareParking, X } from "lucide-react";
 import { distText, dirURL, fmt, type Model, type Tone } from "../model.ts";
 import type { LngLat, Option } from "../geo.ts";
@@ -21,6 +21,42 @@ export const Tag = ({ m }: { m: Pick<Model, "tone" | "label"> }) => (
   <span className={`tag label t-${m.tone}`}><ToneIcon tone={m.tone} />{m.label}</span>
 );
 
+// Phones: drag down to close. The element follows the finger and closes past 80 px.
+// A gesture that starts sideways, or while the content is scrolled, is left to the browser.
+function useSwipeDown(onClose: () => void, scroller?: () => HTMLElement | null) {
+  const g = useRef<{ x: number; y: number; dy: number; on: boolean | null } | null>(null);
+  const end = (e: TouchEvent<HTMLElement>) => {
+    const s = g.current, el = e.currentTarget;
+    g.current = null;
+    if (!s?.on) return;
+    const reset = () => { el.style.transition = ""; el.style.transform = ""; };
+    // Clear the drag offset after the close renders, so the sheet slides on from where the finger left it.
+    if (s.dy > 80) { onClose(); requestAnimationFrame(reset); } else reset();
+  };
+  return {
+    onTouchStart: (e: TouchEvent<HTMLElement>) => {
+      const t = e.touches[0];
+      g.current = matchMedia("(min-width: 900px)").matches || (scroller?.()?.scrollTop ?? 0) > 0
+        ? null : { x: t.clientX, y: t.clientY, dy: 0, on: null };
+    },
+    onTouchMove: (e: TouchEvent<HTMLElement>) => {
+      const s = g.current, t = e.touches[0];
+      if (!s || s.on === false) return;
+      const dx = t.clientX - s.x, dy = t.clientY - s.y;
+      if (s.on === null) {
+        if (Math.hypot(dx, dy) < 8) return;
+        s.on = dy > Math.abs(dx);
+        if (!s.on) return;
+      }
+      s.dy = Math.max(0, dy);
+      e.currentTarget.style.transition = "none";
+      e.currentTarget.style.transform = `translateY(${s.dy}px)`;
+    },
+    onTouchEnd: end,
+    onTouchCancel: end,
+  };
+}
+
 interface PanelProps {
   open: boolean;
   label: string;
@@ -30,8 +66,10 @@ interface PanelProps {
 }
 // The bottom sheet on phones, the side panel on wide screens.
 export function Panel({ open, label, onClose, ref, children }: PanelProps) {
+  const body = useRef<HTMLDivElement>(null);
+  const swipe = useSwipeDown(onClose, () => body.current);
   return (
-    <section ref={ref} className="sheet" data-open={open ? "true" : "false"} aria-label={label} aria-live="polite">
+    <section ref={ref} className="sheet" data-open={open ? "true" : "false"} aria-label={label} aria-live="polite" {...swipe}>
       <div className="flex justify-center min-[900px]:hidden">
         <button type="button" className="h-11 w-full grid place-items-center" onClick={onClose} aria-label="Cerrar">
           <span className="block w-10 h-1 rounded-sm bg-linia" />
@@ -40,7 +78,7 @@ export function Panel({ open, label, onClose, ref, children }: PanelProps) {
       <button type="button" className="icon-btn absolute top-3 right-2 hidden min-[900px]:grid" onClick={onClose} aria-label="Cerrar">
         <X size={22} strokeWidth={1.75} />
       </button>
-      {open && <div className="flex-1 min-h-0 overflow-auto overscroll-contain px-4 pb-5 min-[900px]:pt-5 flex flex-col gap-5">{children}</div>}
+      {open && <div ref={body} className="flex-1 min-h-0 overflow-auto overscroll-contain px-4 pb-5 min-[900px]:pt-5 flex flex-col gap-5">{children}</div>}
     </section>
   );
 }
@@ -154,6 +192,7 @@ interface NearbyProps {
 }
 export function Nearby({ cards, isUser, active, onActive, onOpen, onClose, side }: NearbyProps) {
   const settle = useRef(0);
+  const swipe = useSwipeDown(onClose);
   // A swipe that settles on a card highlights it on the map; a tap opens its detail.
   const onScroll = (e: UIEvent<HTMLOListElement>) => {
     const el = e.currentTarget;
@@ -170,7 +209,7 @@ export function Nearby({ cards, isUser, active, onActive, onOpen, onClose, side 
   };
   return (
     <section className={side ? "side-panel absolute z-20 left-4 top-[136px] w-[380px] max-h-[calc(100%-152px)] flex flex-col"
-      : "flex flex-col gap-2 pointer-events-auto"} aria-label="Opciones cercanas">
+      : "flex flex-col gap-2 pointer-events-auto transition-transform duration-200"} aria-label="Opciones cercanas" {...(side ? {} : swipe)}>
       <div className={`flex items-center gap-2 ${side ? "pl-5 pr-2 pt-3 pb-1" : "px-4"}`}>
         <p className={`m-0 label leading-[18px] whitespace-nowrap ${side ? "" : "float rounded-2xl px-3 py-1.5"}`}>
           {isUser ? "Cerca de ti" : "Cerca del centro del mapa"}{" "}
