@@ -69,6 +69,12 @@ def fetch(dest: Path, url) -> Path:
     request = urllib.request.Request(url() if callable(url) else url, headers=HEADERS)
     with urllib.request.urlopen(request, timeout=900) as response, open(part, "wb") as out:
         shutil.copyfileobj(response, out)
+        kind = response.headers.get("Content-Type", "")
+    # A server that refuses the download answers with an HTML page, which must not enter the cache.
+    if dest.suffix == ".zip" and not zipfile.is_zipfile(part):
+        head = part.read_bytes()[:300]
+        part.unlink()
+        raise RuntimeError(f"{dest.name}: expected a ZIP, got {kind!r}: {head!r}")
     part.rename(dest)
     return dest
 
