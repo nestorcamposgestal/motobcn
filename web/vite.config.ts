@@ -4,6 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // Listen on every interface: a Windows browser reaches WSL that way, and so does a phone on the same network.
+  server: { host: true },
+  preview: { host: true },
   plugins: [
     react(),
     tailwindcss(),
