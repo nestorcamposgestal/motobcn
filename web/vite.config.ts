@@ -31,7 +31,7 @@ export default defineConfig({
       workbox: {
         // The tiles are large and read with range requests: they stay on the network, never in the precache.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2,pbf}"],
-        globIgnores: ["**/*.pmtiles", "og.jpg", "data/**", "**/*-{cyrillic,cyrillic-ext,greek,vietnamese}-*"],
+        globIgnores: ["**/*.pmtiles", "preview.jpg", "data/**", "**/*-{cyrillic,cyrillic-ext,greek,vietnamese}-*"],
       },
     }),
   ],
