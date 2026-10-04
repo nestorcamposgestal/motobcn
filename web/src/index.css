@@ -139,6 +139,9 @@
 .intro-card { animation: intro-rise .35s cubic-bezier(.2, .8, .2, 1); }
 .intro-tip { animation: intro-rise .4s cubic-bezier(.2, .8, .2, 1) backwards; }
 
+@media (max-width: 899px) {
+  .sheet[data-open="true"][data-peek="true"] { transform: translateY(var(--peek, 0px)); cursor: pointer; }
+}
 @media (min-width: 900px) {
   /* Side panel: the sheet sits under the search, at the left. */
   .sheet { left: 16px; right: auto; top: 136px; bottom: auto; width: 380px; max-height: calc(100% - 152px); border-radius: var(--radius-lg);

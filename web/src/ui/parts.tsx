@@ -1,4 +1,4 @@
-import { useRef, type ReactNode, type Ref, type TouchEvent, type UIEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject, type TouchEvent, type UIEvent } from "react";
 import { Motorbike, Navigation, Receipt, Scale, SquareParking, X } from "lucide-react";
 import { distText, dirURL, fmt, type Model, type Tone } from "../model.ts";
 import type { LngLat, Option } from "../geo.ts";
@@ -23,21 +23,30 @@ export const Tag = ({ m }: { m: Pick<Model, "tone" | "label"> }) => (
 
 // Phones: drag down to close. The element follows the finger and closes past 80 px.
 // A gesture that starts sideways, or while the content is scrolled, is left to the browser.
-export function useSwipeDown(onClose: () => void, scroller?: () => HTMLElement | null) {
-  const g = useRef<{ x: number; y: number; dy: number; on: boolean | null } | null>(null);
+// base is where the element rests now (px down); settle, if given, decides what a release does.
+interface SwipeOpts {
+  scroller?: () => HTMLElement | null;
+  base?: () => number;
+  settle?: (dy: number, v: number) => void;
+}
+export function useSwipeDown(onClose: () => void, { scroller, base, settle }: SwipeOpts = {}) {
+  const g = useRef<{ x: number; y: number; py: number; pt: number; dy: number; v: number; base: number; on: boolean | null } | null>(null);
   const end = (e: TouchEvent<HTMLElement>) => {
     const s = g.current, el = e.currentTarget;
     g.current = null;
     if (!s?.on) return;
     const reset = () => { el.style.transition = ""; el.style.transform = ""; };
-    // Clear the drag offset after the close renders, so the sheet slides on from where the finger left it.
-    if (s.dy > 80) { onClose(); requestAnimationFrame(reset); } else reset();
+    // Clear the drag offset after the new state renders, so the sheet moves on from where the finger left it.
+    if (settle) settle(s.dy, s.v);
+    else if (s.dy > 80) onClose();
+    else return reset();
+    requestAnimationFrame(reset);
   };
   return {
     onTouchStart: (e: TouchEvent<HTMLElement>) => {
-      const t = e.touches[0];
-      g.current = matchMedia("(min-width: 900px)").matches || (scroller?.()?.scrollTop ?? 0) > 0
-        ? null : { x: t.clientX, y: t.clientY, dy: 0, on: null };
+      const t = e.touches[0], b = base?.() ?? 0;
+      g.current = matchMedia("(min-width: 900px)").matches || (!b && (scroller?.()?.scrollTop ?? 0) > 0)
+        ? null : { x: t.clientX, y: t.clientY, py: t.clientY, pt: e.timeStamp, dy: 0, v: 0, base: b, on: null };
     },
     onTouchMove: (e: TouchEvent<HTMLElement>) => {
       const s = g.current, t = e.touches[0];
@@ -45,12 +54,17 @@ export function useSwipeDown(onClose: () => void, scroller?: () => HTMLElement |
       const dx = t.clientX - s.x, dy = t.clientY - s.y;
       if (s.on === null) {
         if (Math.hypot(dx, dy) < 8) return;
-        s.on = dy > Math.abs(dx);
+        // Up only when there is room to rise, as from the compact sheet.
+        s.on = Math.abs(dy) > Math.abs(dx) && (dy > 0 || s.base > 0);
         if (!s.on) return;
       }
-      s.dy = Math.max(0, dy);
+      // Speed in px/ms over the last move, to tell a flick from a slow drag.
+      s.v = (t.clientY - s.py) / Math.max(1, e.timeStamp - s.pt);
+      s.py = t.clientY;
+      s.pt = e.timeStamp;
+      s.dy = Math.max(-s.base, dy);
       e.currentTarget.style.transition = "none";
-      e.currentTarget.style.transform = `translateY(${s.dy}px)`;
+      e.currentTarget.style.transform = `translateY(${s.base + s.dy}px)`;
     },
     onTouchEnd: end,
     onTouchCancel: end,
@@ -61,17 +75,41 @@ interface PanelProps {
   open: boolean;
   label: string;
   onClose: () => void;
-  ref?: Ref<HTMLElement>;
+  ref?: RefObject<HTMLElement | null>;
   children: ReactNode;
 }
 // The bottom sheet on phones, the side panel on wide screens.
+// On phones a calm drag down leaves it compact, with only the first block in view, so the rider can tap
+// place after place on the map; a flick or a long drag closes it, a tap or a drag up opens it again.
 export function Panel({ open, label, onClose, ref, children }: PanelProps) {
+  const own = useRef<HTMLElement>(null);
+  const el = ref ?? own;
   const body = useRef<HTMLDivElement>(null);
-  const swipe = useSwipeDown(onClose, () => body.current);
+  const [peek, setPeek] = useState(false);
+  useEffect(() => { if (!open) setPeek(false); }, [open]);
+  // --peek moves the sheet down until only the first block shows. Measured on every render: the content changes.
+  useLayoutEffect(() => {
+    const s = el.current, head = body.current?.firstElementChild;
+    if (!peek || !s || !head) return;
+    const shown = head.getBoundingClientRect().bottom - s.getBoundingClientRect().top + 16;
+    s.style.setProperty("--peek", `${Math.max(0, s.offsetHeight - shown - parseFloat(getComputedStyle(s).paddingBottom))}px`);
+  });
+  const swipe = useSwipeDown(onClose, {
+    scroller: () => body.current,
+    base: () => (peek ? parseFloat(el.current?.style.getPropertyValue("--peek") ?? "") || 0 : 0),
+    settle: (dy, v) => {
+      if (peek) {
+        if (dy < -30 || v < -0.4) setPeek(false);
+        else if (dy > 30 || v > 0.6) onClose();
+      } else if ((v > 0.8 && dy > 30) || dy > (el.current?.offsetHeight ?? 0) * 0.6) onClose();
+      else if (dy > 60) setPeek(true);
+    },
+  });
   return (
-    <section ref={ref} className="sheet" data-open={open ? "true" : "false"} aria-label={label} aria-live="polite" {...swipe}>
+    <section ref={el} className="sheet" data-open={open ? "true" : "false"} data-peek={peek ? "true" : "false"} aria-label={label}
+      aria-live="polite" {...swipe} onClick={() => peek && setPeek(false)}>
       <div className="flex justify-center min-[900px]:hidden">
-        <button type="button" className="h-11 w-full grid place-items-center" onClick={onClose} aria-label="Cerrar">
+        <button type="button" className="h-11 w-full grid place-items-center" onClick={peek ? undefined : onClose} aria-label={peek ? "Ampliar" : "Cerrar"}>
           <span className="block w-10 h-1 rounded-sm bg-linia" />
         </button>
       </div>

@@ -216,7 +216,10 @@ export default function App() {
     const map = mapRef.current;
     if (!map) return;
     requestAnimationFrame(() => {
-      const cover = wideMQ.matches || !sheetEl.current ? 0 : sheetEl.current.offsetHeight;
+      const sh = sheetEl.current;
+      // The compact sheet covers only its first block.
+      const cover = wideMQ.matches || !sh ? 0
+        : sh.offsetHeight - (sh.dataset.peek === "true" ? parseFloat(sh.style.getPropertyValue("--peek")) || 0 : 0);
       const pt = map.project(ll), h = map.getContainer().clientHeight;
       if (!zoom && pt.y < h - cover - 32 && pt.y > 150) return;
       map.easeTo({ center: ll, zoom: zoom ?? map.getZoom(), offset: [0, -cover / 2 + 40], duration: dur(700) });
@@ -361,7 +364,8 @@ export default function App() {
         </div>
       </div>
 
-      <div className="absolute z-10 left-0 right-0 min-[900px]:left-[412px] bottom-0 pb-[calc(16px+env(safe-area-inset-bottom,0px))] flex flex-col gap-3 pointer-events-none">
+      <div className={`absolute z-10 left-0 right-0 min-[900px]:left-[412px] bottom-0 pb-[calc(16px+env(safe-area-inset-bottom,0px))] flex flex-col gap-3 pointer-events-none
+        transition-opacity ${!wide && (sel || showParked) ? "opacity-0 invisible" : ""}`}>
         <div className="flex items-end justify-between gap-3 px-4">
           <button type="button" className="float pointer-events-auto flex items-center gap-2 min-h-11 px-4 rounded-[22px] label" onClick={nearHere}>
             <MapPin size={18} strokeWidth={1.75} aria-hidden="true" />Cerca de ti
@@ -380,7 +384,8 @@ export default function App() {
             </button>
           </div>
         </div>
-        {near && !wide && nearPanel}
+        {/* The sheet takes their place on phones; closing it brings them back. */}
+        {near && !wide && !sel && !showParked && nearPanel}
       </div>
 
       {near && wide && nearPanel}
