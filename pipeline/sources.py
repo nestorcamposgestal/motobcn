@@ -5,6 +5,7 @@ Delete a folder in data/raw to download that source again.
 Run this file to load every source and write data/raw/manifest.json with the URLs and dates.
 """
 
+import http.client
 import json
 import os
 import shutil
@@ -67,14 +68,22 @@ def fetch(dest: Path, url) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_name(dest.name + ".part")
     request = urllib.request.Request(url() if callable(url) else url, headers=HEADERS)
-    with urllib.request.urlopen(request, timeout=900) as response, open(part, "wb") as out:
-        shutil.copyfileobj(response, out)
-        kind = response.headers.get("Content-Type", "")
-    # A server that refuses the download answers with an HTML page, which must not enter the cache.
-    if dest.suffix == ".zip" and not zipfile.is_zipfile(part):
-        head = part.read_bytes()[:300]
-        part.unlink()
-        raise RuntimeError(f"{dest.name}: expected a ZIP, got {kind!r}: {head!r}")
+    for attempt in range(4):
+        # Large CartoBCN downloads sometimes stop before the end, so check the size and try again.
+        size, kind = "-1", ""
+        try:
+            with urllib.request.urlopen(request, timeout=900) as response, open(part, "wb") as out:
+                size, kind = response.headers.get("Content-Length"), response.headers.get("Content-Type", "")
+                shutil.copyfileobj(response, out)
+        except (OSError, http.client.HTTPException):
+            pass
+        if part.exists() and (size is None or part.stat().st_size == int(size)) and (dest.suffix != ".zip" or zipfile.is_zipfile(part)):
+            break
+        time.sleep(10 * (attempt + 1))
+    else:
+        head = part.read_bytes()[:100] if part.exists() else b""
+        part.unlink(missing_ok=True)
+        raise RuntimeError(f"{dest.name}: incomplete or not a ZIP after 4 tries, got {kind!r}: {head!r}")
     part.rename(dest)
     return dest
 
