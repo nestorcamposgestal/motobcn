@@ -23,7 +23,7 @@ export const Tag = ({ m }: { m: Pick<Model, "tone" | "label"> }) => (
 
 // Phones: drag down to close. The element follows the finger and closes past 80 px.
 // A gesture that starts sideways, or while the content is scrolled, is left to the browser.
-function useSwipeDown(onClose: () => void, scroller?: () => HTMLElement | null) {
+export function useSwipeDown(onClose: () => void, scroller?: () => HTMLElement | null) {
   const g = useRef<{ x: number; y: number; dy: number; on: boolean | null } | null>(null);
   const end = (e: TouchEvent<HTMLElement>) => {
     const s = g.current, el = e.currentTarget;

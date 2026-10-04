@@ -12,6 +12,7 @@ import { Detail, Nearby, Panel, ParkedInfo, type Card, type Parked } from "./ui/
 import { Search } from "./ui/Search.tsx";
 import { Legend, type ThemePref } from "./ui/Legend.tsx";
 import { Welcome } from "./ui/Welcome.tsx";
+import { Intro } from "./ui/Intro.tsx";
 
 setWorkerUrl(workerUrl);
 const protocol = new Protocol();
@@ -95,6 +96,7 @@ export default function App() {
   const [active, setActive] = useState(0);
   const [legend, setLegend] = useState(false);
   const [welcome, setWelcome] = useState(() => store.get("motobcn.welcome") !== "1");
+  const [intro, setIntro] = useState(() => store.get("motobcn.intro") !== "1");
   const [toast, setToast] = useState("");
   const [parked, setParked] = useState<Parked | null>(() => { try { return JSON.parse(store.get("motobcn.parked") || "null"); } catch { return null; } });
   const [showParked, setShowParked] = useState(false);
@@ -322,14 +324,16 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (legend) setLegend(false);
+      if (intro) closeIntro();
+      else if (legend) setLegend(false);
       else if (sel || showParked) select(null);
       else if (near) setNear(null);
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [legend, sel, near, showParked]);
+  }, [intro, legend, sel, near, showParked]);
 
+  const closeIntro = () => { setIntro(false); store.set("motobcn.intro", "1"); };
   const selModel = sel ? model(sel, meta) : null;
   const fineYear = meta?.sources.fines?.data_date?.slice(0, 4) ?? "2025";
   const nearPanel = near && (
@@ -387,12 +391,14 @@ export default function App() {
             onPark={() => park(selModel.ll, selModel.street)} />}
       </Panel>
       {createPortal(<Motorbike size={18} strokeWidth={2} aria-label="Tu moto" />, motoEl)}
-      {legend && <Legend theme={theme} pref={pref} onPref={setPref} risk={risk} onRisk={setRisk} meta={meta} onClose={() => setLegend(false)} />}
+      {legend && <Legend theme={theme} pref={pref} onPref={setPref} risk={risk} onRisk={setRisk} meta={meta} onClose={() => setLegend(false)}
+        onHelp={() => { setLegend(false); setIntro(true); }} />}
       {toast && (
         <p role="status" className="absolute z-[45] left-4 right-4 top-[calc(132px+env(safe-area-inset-top,0px))] min-[900px]:top-auto min-[900px]:bottom-6 min-[900px]:left-[412px] mx-auto max-w-[420px] m-0 px-4 py-3 rounded-[16px] bg-tinta text-pedra-50 text-sm font-medium shadow-[var(--shadow-float)]">
           {toast}
         </p>
       )}
+      {intro && !welcome && <Intro onClose={closeIntro} />}
       {welcome && <Welcome progress={progress} theme={theme} onEnter={() => { setWelcome(false); store.set("motobcn.welcome", "1"); }} />}
     </main>
   );

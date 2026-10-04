@@ -132,6 +132,13 @@
   [aria-checked="true"] > .toggle::after { transform: translateX(20px); }
 }
 
+/* First-visit card: the backdrop fades in, the card rises, the tips follow one by one. */
+@keyframes intro-fade { from { opacity: 0; } }
+@keyframes intro-rise { from { opacity: 0; transform: translateY(16px); } }
+.intro-fade { animation: intro-fade .25s ease-out; }
+.intro-card { animation: intro-rise .35s cubic-bezier(.2, .8, .2, 1); }
+.intro-tip { animation: intro-rise .4s cubic-bezier(.2, .8, .2, 1) backwards; }
+
 @media (min-width: 900px) {
   /* Side panel: the sheet sits under the search, at the left. */
   .sheet { left: 16px; right: auto; top: 136px; bottom: auto; width: 380px; max-height: calc(100% - 152px); border-radius: var(--radius-lg);

@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { CircleHelp, X } from "lucide-react";
 import { PAL, type Theme } from "../map/style.ts";
 import { fmt, type Meta } from "../model.ts";
 
@@ -56,8 +56,9 @@ interface Props {
   onRisk: (v: boolean) => void;
   meta: Meta | null;
   onClose: () => void;
+  onHelp: () => void;
 }
-export function Legend({ theme, pref, onPref, risk, onRisk, meta, onClose }: Props) {
+export function Legend({ theme, pref, onPref, risk, onRisk, meta, onClose, onHelp }: Props) {
   const km = meta?.status_km ?? {};
   return (
     <section id="legend" aria-labelledby="legend-title"
@@ -76,6 +77,7 @@ export function Legend({ theme, pref, onPref, risk, onRisk, meta, onClose }: Pro
         ))}
       </ul>
       <p className="m-0 mt-4 px-3 py-2.5 rounded-[8px] bg-pedra-200 font-bold">Orientativo: manda la señalización.</p>
+      <button type="button" className="linkrow mt-2" onClick={onHelp}><CircleHelp size={20} strokeWidth={1.75} />Cómo funciona</button>
 
       <h3 className="m-0 mt-6 font-display font-semibold text-base">Capas y tema</h3>
       <button type="button" role="switch" aria-checked={risk} onClick={() => onRisk(!risk)}
