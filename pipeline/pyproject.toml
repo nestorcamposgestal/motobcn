@@ -1,0 +1,17 @@
+[project]
+name = "motobcn-pipeline"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "geopandas>=1.2",
+    "numpy>=2",
+    "pyogrio>=0.13",
+    "pyproj>=3.7",
+    "shapely>=2.1",
+]
+
+[dependency-groups]
+dev = [
+    "matplotlib>=3.10",
+    "pytest>=8",
+]

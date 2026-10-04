@@ -1,0 +1,6 @@
+data/
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+design/prototipo/data/

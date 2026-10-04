@@ -1,0 +1,1283 @@
+<title>MotoBCN Prototipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&family=Chakra+Petch:wght@500;600;700&family=B612:wght@400;700&family=Sofia+Sans+Extra+Condensed:wght@700;800;900&family=Overpass:wght@400..800&display=swap">
+<style>
+/* Layout: one full-screen map. Mobile: floating search and chips on top, bottom sheet for details.
+   900 px and wider: a left panel holds search, chips and details.
+   Three visual directions share this structure; each one only swaps tokens, shapes and the map style.
+   A Panot: the city's ground in daylight. B Fanal: riding at night. C Pintura: road paint and signage. */
+:root {
+  --ground: #ECE8E0; --surface: #FFFFFF; --surface-2: #F4F1EB; --surface-3: #E7E1D6;
+  --ink: #1E1C18; --ink-2: #57524A; --line: #DCD5C8;
+  --accent: #2344C4; --accent-ink: #FFFFFF; --focus: #2344C4;
+  --ok: #1B7A45; --semi: #0A6A89; --no: #B32F27; --nodata: #6B665D; --bay: #2344C4;
+  --plate-ok: transparent; --plate-ok-ink: #FFFFFF; --plate-no: transparent; --plate-ink: inherit;
+  --shadow: 0 1px 2px rgb(40 32 16 / .10), 0 10px 28px rgb(40 32 16 / .16);
+  --f-display: "Bricolage Grotesque", "Instrument Sans", ui-sans-serif, sans-serif;
+  --f-ui: "Instrument Sans", ui-sans-serif, sans-serif;
+  --radius: 0px; --border: 0px; --cut: 9px;
+  --icon-stroke: 1.75; --icon-join: bevel; --icon-cap: square;
+  --big: clamp(2.1rem, 1.7rem + 1.6vw, 2.6rem); --big-weight: 700; --big-track: -0.02em; --big-case: none;
+  --eyebrow-case: none; --eyebrow-track: 0.01em; --eyebrow-size: .8125rem;
+  color-scheme: light;
+}
+:root[data-dir="b"] {
+  --ground: #DDE2E9; --surface: #F6F8FB; --surface-2: #EAEEF4; --surface-3: #DCE2EB;
+  --ink: #111722; --ink-2: #465266; --line: #C6CEDB;
+  --accent: #8A5200; --accent-ink: #FFFFFF; --focus: #1C57C2;
+  --ok: #0A7447; --semi: #1C57C2; --no: #BE1E2D; --nodata: #586172; --bay: #8A5200;
+  --shadow: 0 1px 2px rgb(10 20 40 / .10), 0 10px 26px rgb(10 20 40 / .14);
+  --f-display: "Chakra Petch", "B612", ui-sans-serif, sans-serif;
+  --f-ui: "B612", ui-sans-serif, sans-serif;
+  --radius: 6px; --border: 1px; --cut: 0px;
+  --icon-stroke: 1.5; --icon-join: round; --icon-cap: round;
+  --big: clamp(2.2rem, 1.8rem + 1.6vw, 2.75rem); --big-weight: 600; --big-track: 0; --big-case: none;
+  --eyebrow-case: uppercase; --eyebrow-track: 0.12em; --eyebrow-size: .6875rem;
+}
+:root[data-dir="c"] {
+  --ground: #5F6368; --surface: #FFFFFF; --surface-2: #F1F1EF; --surface-3: #E3E3E0;
+  --ink: #111214; --ink-2: #43464B; --line: #111214;
+  --accent: #1D4FC4; --accent-ink: #FFFFFF; --focus: #1D4FC4;
+  --ok: #1D4FC4; --semi: #1D4FC4; --no: #111214; --nodata: #5C6066; --bay: #1D4FC4;
+  --plate-ok: #1D4FC4; --plate-no: #FFD000; --plate-ink: #111214;
+  --shadow: none;
+  --f-display: "Sofia Sans Extra Condensed", "Overpass", ui-sans-serif, sans-serif;
+  --f-ui: "Overpass", ui-sans-serif, sans-serif;
+  --radius: 10px; --border: 2px; --cut: 0px;
+  --icon-stroke: 2.5; --icon-join: miter; --icon-cap: butt;
+  --big: clamp(2.9rem, 2.4rem + 2vw, 3.5rem); --big-weight: 800; --big-track: 0.005em; --big-case: uppercase;
+  --eyebrow-case: uppercase; --eyebrow-track: 0.06em; --eyebrow-size: .8125rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #151614; --surface: #1E1D1B; --surface-2: #282623; --surface-3: #34312C;
+    --ink: #F3EFE8; --ink-2: #B8B1A5; --line: #3C3934;
+    --accent: #93A5FF; --accent-ink: #0B1236; --focus: #93A5FF;
+    --ok: #5CCB8E; --semi: #52C3E4; --no: #FF8074; --nodata: #A39D92; --bay: #93A5FF;
+    --shadow: 0 1px 2px rgb(0 0 0 / .45), 0 12px 32px rgb(0 0 0 / .5);
+    color-scheme: dark;
+  }
+  :root[data-dir="b"]:not([data-theme="light"]) {
+    --ground: #07090D; --surface: #0D1118; --surface-2: #141A24; --surface-3: #1D2533;
+    --ink: #E8EDF5; --ink-2: #9AA5B7; --line: #26324A;
+    --accent: #FFB020; --accent-ink: #1A1100; --focus: #FFB020;
+    --ok: #45DA99; --semi: #6DB5FF; --no: #FF6E7B; --nodata: #8D97A8; --bay: #FFB020;
+    --shadow: 0 0 0 1px rgb(255 255 255 / .02), 0 14px 36px rgb(0 0 0 / .6);
+  }
+  :root[data-dir="c"]:not([data-theme="light"]) {
+    --ground: #131417; --surface: #17181B; --surface-2: #222428; --surface-3: #2E3136;
+    --ink: #F4F4F2; --ink-2: #BBBEC3; --line: #F4F4F2;
+    --accent: #5B93FF; --accent-ink: #06122E; --focus: #FFD000;
+    --ok: #5B93FF; --semi: #5B93FF; --no: #F4F4F2; --nodata: #9DA1A7; --bay: #5B93FF;
+    --plate-ok: #5B93FF; --plate-ok-ink: #06122E; --plate-no: #FFD000; --plate-ink: #111214;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #151614; --surface: #1E1D1B; --surface-2: #282623; --surface-3: #34312C;
+  --ink: #F3EFE8; --ink-2: #B8B1A5; --line: #3C3934;
+  --accent: #93A5FF; --accent-ink: #0B1236; --focus: #93A5FF;
+  --ok: #5CCB8E; --semi: #52C3E4; --no: #FF8074; --nodata: #A39D92; --bay: #93A5FF;
+  --shadow: 0 1px 2px rgb(0 0 0 / .45), 0 12px 32px rgb(0 0 0 / .5);
+  color-scheme: dark;
+}
+:root[data-theme="dark"][data-dir="b"] {
+  --ground: #07090D; --surface: #0D1118; --surface-2: #141A24; --surface-3: #1D2533;
+  --ink: #E8EDF5; --ink-2: #9AA5B7; --line: #26324A;
+  --accent: #FFB020; --accent-ink: #1A1100; --focus: #FFB020;
+  --ok: #45DA99; --semi: #6DB5FF; --no: #FF6E7B; --nodata: #8D97A8; --bay: #FFB020;
+  --shadow: 0 0 0 1px rgb(255 255 255 / .02), 0 14px 36px rgb(0 0 0 / .6);
+}
+:root[data-theme="dark"][data-dir="c"] {
+  --ground: #131417; --surface: #17181B; --surface-2: #222428; --surface-3: #2E3136;
+  --ink: #F4F4F2; --ink-2: #BBBEC3; --line: #F4F4F2;
+  --accent: #5B93FF; --accent-ink: #06122E; --focus: #FFD000;
+  --ok: #5B93FF; --semi: #5B93FF; --no: #F4F4F2; --nodata: #9DA1A7; --bay: #5B93FF;
+  --plate-ok: #5B93FF; --plate-ok-ink: #06122E; --plate-no: #FFD000; --plate-ink: #111214;
+  --shadow: none;
+}
+</style>
+<style>
+/* maplibre-gl 5.24.0 dist/maplibre-gl.css */
+.maplibregl-map{font:12px/20px Helvetica Neue,Arial,Helvetica,sans-serif;overflow:hidden;position:relative;-webkit-tap-highlight-color:rgb(0 0 0/0)}.maplibregl-canvas{left:0;position:absolute;top:0}.maplibregl-map:fullscreen{height:100%;width:100%}.maplibregl-ctrl-group button.maplibregl-ctrl-compass{touch-action:none}.maplibregl-canvas-container.maplibregl-interactive,.maplibregl-ctrl-group button.maplibregl-ctrl-compass{cursor:grab;-webkit-user-select:none;-moz-user-select:none;user-select:none}.maplibregl-canvas-container.maplibregl-interactive.maplibregl-track-pointer{cursor:pointer}.maplibregl-canvas-container.maplibregl-interactive:active,.maplibregl-ctrl-group button.maplibregl-ctrl-compass:active{cursor:grabbing}.maplibregl-canvas-container.maplibregl-touch-zoom-rotate,.maplibregl-canvas-container.maplibregl-touch-zoom-rotate .maplibregl-canvas{touch-action:pan-x pan-y}.maplibregl-canvas-container.maplibregl-touch-drag-pan,.maplibregl-canvas-container.maplibregl-touch-drag-pan .maplibregl-canvas{touch-action:pinch-zoom}.maplibregl-canvas-container.maplibregl-touch-zoom-rotate.maplibregl-touch-drag-pan,.maplibregl-canvas-container.maplibregl-touch-zoom-rotate.maplibregl-touch-drag-pan .maplibregl-canvas{touch-action:none}.maplibregl-canvas-container.maplibregl-touch-drag-pan.maplibregl-cooperative-gestures,.maplibregl-canvas-container.maplibregl-touch-drag-pan.maplibregl-cooperative-gestures .maplibregl-canvas{touch-action:pan-x pan-y}.maplibregl-ctrl-bottom-left,.maplibregl-ctrl-bottom-right,.maplibregl-ctrl-top-left,.maplibregl-ctrl-top-right{pointer-events:none;position:absolute;z-index:2}.maplibregl-ctrl-top-left{left:0;top:0}.maplibregl-ctrl-top-right{right:0;top:0}.maplibregl-ctrl-bottom-left{bottom:0;left:0}.maplibregl-ctrl-bottom-right{bottom:0;right:0}.maplibregl-ctrl{clear:both;pointer-events:auto;transform:translate(0)}.maplibregl-ctrl-top-left .maplibregl-ctrl{float:left;margin:10px 0 0 10px}.maplibregl-ctrl-top-right .maplibregl-ctrl{float:right;margin:10px 10px 0 0}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{float:left;margin:0 0 10px 10px}.maplibregl-ctrl-bottom-right .maplibregl-ctrl{float:right;margin:0 10px 10px 0}.maplibregl-ctrl-group{background:#fff;border-radius:4px}.maplibregl-ctrl-group:not(:empty){box-shadow:0 0 0 2px rgba(0,0,0,.1)}@media (forced-colors:active){.maplibregl-ctrl-group:not(:empty){box-shadow:0 0 0 2px ButtonText}}.maplibregl-ctrl-group button{background-color:transparent;border:0;box-sizing:border-box;cursor:pointer;display:block;height:29px;outline:none;padding:0;width:29px}.maplibregl-ctrl-group button+button{border-top:1px solid #ddd}.maplibregl-ctrl button .maplibregl-ctrl-icon{background-position:50%;background-repeat:no-repeat;display:block;height:100%;width:100%}@media (forced-colors:active){.maplibregl-ctrl-icon{background-color:transparent}.maplibregl-ctrl-group button+button{border-top:1px solid ButtonText}}.maplibregl-ctrl button::-moz-focus-inner{border:0;padding:0}.maplibregl-ctrl-attrib-button:focus,.maplibregl-ctrl-group button:focus{box-shadow:0 0 2px 2px #0096ff}.maplibregl-ctrl button:disabled{cursor:not-allowed}.maplibregl-ctrl button:disabled .maplibregl-ctrl-icon{opacity:.25}@media (hover:hover){.maplibregl-ctrl button:not(:disabled):hover{background-color:rgba(0,0,0,.05)}}.maplibregl-ctrl button:not(:disabled):active{background-color:rgba(0,0,0,.05)}.maplibregl-ctrl-group button:focus:focus-visible{box-shadow:0 0 2px 2px #0096ff}.maplibregl-ctrl-group button:focus:not(:focus-visible){box-shadow:none}.maplibregl-ctrl-group button:focus:first-child{border-radius:4px 4px 0 0}.maplibregl-ctrl-group button:focus:last-child{border-radius:0 0 4px 4px}.maplibregl-ctrl-group button:focus:only-child{border-radius:inherit}.maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23333' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23333' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E")}@media (forced-colors:active){.maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23fff' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23fff' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E")}}@media (forced-colors:active) and (prefers-color-scheme:light){.maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E")}}.maplibregl-ctrl button.maplibregl-ctrl-fullscreen .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23333' viewBox='0 0 29 29'%3E%3Cpath d='M24 16v5.5c0 1.75-.75 2.5-2.5 2.5H16v-1l3-1.5-4-5.5 1-1 5.5 4 1.5-3zM6 16l1.5 3 5.5-4 1 1-4 5.5 3 1.5v1H7.5C5.75 24 5 23.25 5 21.5V16zm7-11v1l-3 1.5 4 5.5-1 1-5.5-4L6 13H5V7.5C5 5.75 5.75 5 7.5 5zm11 2.5c0-1.75-.75-2.5-2.5-2.5H16v1l3 1.5-4 5.5 1 1 5.5-4 1.5 3h1z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-shrink .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M18.5 16c-1.75 0-2.5.75-2.5 2.5V24h1l1.5-3 5.5 4 1-1-4-5.5 3-1.5v-1zM13 18.5c0-1.75-.75-2.5-2.5-2.5H5v1l3 1.5L4 24l1 1 5.5-4 1.5 3h1zm3-8c0 1.75.75 2.5 2.5 2.5H24v-1l-3-1.5L25 5l-1-1-5.5 4L17 5h-1zM10.5 13c1.75 0 2.5-.75 2.5-2.5V5h-1l-1.5 3L5 4 4 5l4 5.5L5 12v1z'/%3E%3C/svg%3E")}@media (forced-colors:active){.maplibregl-ctrl button.maplibregl-ctrl-fullscreen .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23fff' viewBox='0 0 29 29'%3E%3Cpath d='M24 16v5.5c0 1.75-.75 2.5-2.5 2.5H16v-1l3-1.5-4-5.5 1-1 5.5 4 1.5-3zM6 16l1.5 3 5.5-4 1 1-4 5.5 3 1.5v1H7.5C5.75 24 5 23.25 5 21.5V16zm7-11v1l-3 1.5 4 5.5-1 1-5.5-4L6 13H5V7.5C5 5.75 5.75 5 7.5 5zm11 2.5c0-1.75-.75-2.5-2.5-2.5H16v1l3 1.5-4 5.5 1 1 5.5-4 1.5 3h1z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-shrink .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23fff' viewBox='0 0 29 29'%3E%3Cpath d='M18.5 16c-1.75 0-2.5.75-2.5 2.5V24h1l1.5-3 5.5 4 1-1-4-5.5 3-1.5v-1zM13 18.5c0-1.75-.75-2.5-2.5-2.5H5v1l3 1.5L4 24l1 1 5.5-4 1.5 3h1zm3-8c0 1.75.75 2.5 2.5 2.5H24v-1l-3-1.5L25 5l-1-1-5.5 4L17 5h-1zM10.5 13c1.75 0 2.5-.75 2.5-2.5V5h-1l-1.5 3L5 4 4 5l4 5.5L5 12v1z'/%3E%3C/svg%3E")}}@media (forced-colors:active) and (prefers-color-scheme:light){.maplibregl-ctrl button.maplibregl-ctrl-fullscreen .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M24 16v5.5c0 1.75-.75 2.5-2.5 2.5H16v-1l3-1.5-4-5.5 1-1 5.5 4 1.5-3zM6 16l1.5 3 5.5-4 1 1-4 5.5 3 1.5v1H7.5C5.75 24 5 23.25 5 21.5V16zm7-11v1l-3 1.5 4 5.5-1 1-5.5-4L6 13H5V7.5C5 5.75 5.75 5 7.5 5zm11 2.5c0-1.75-.75-2.5-2.5-2.5H16v1l3 1.5-4 5.5 1 1 5.5-4 1.5 3h1z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-shrink .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M18.5 16c-1.75 0-2.5.75-2.5 2.5V24h1l1.5-3 5.5 4 1-1-4-5.5 3-1.5v-1zM13 18.5c0-1.75-.75-2.5-2.5-2.5H5v1l3 1.5L4 24l1 1 5.5-4 1.5 3h1zm3-8c0 1.75.75 2.5 2.5 2.5H24v-1l-3-1.5L25 5l-1-1-5.5 4L17 5h-1zM10.5 13c1.75 0 2.5-.75 2.5-2.5V5h-1l-1.5 3L5 4 4 5l4 5.5L5 12v1z'/%3E%3C/svg%3E")}}.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23333' viewBox='0 0 29 29'%3E%3Cpath d='m10.5 14 4-8 4 8z'/%3E%3Cpath fill='%23ccc' d='m10.5 16 4 8 4-8z'/%3E%3C/svg%3E")}@media (forced-colors:active){.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23fff' viewBox='0 0 29 29'%3E%3Cpath d='m10.5 14 4-8 4 8z'/%3E%3Cpath fill='%23ccc' d='m10.5 16 4 8 4-8z'/%3E%3C/svg%3E")}}@media (forced-colors:active) and (prefers-color-scheme:light){.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='m10.5 14 4-8 4 8z'/%3E%3Cpath fill='%23ccc' d='m10.5 16 4 8 4-8z'/%3E%3C/svg%3E")}}.maplibregl-ctrl button.maplibregl-ctrl-globe .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='none' stroke='%23333' viewBox='0 0 22 22'%3E%3Ccircle cx='11' cy='11' r='8.5'/%3E%3Cpath d='M17.5 11c0 4.819-3.02 8.5-6.5 8.5S4.5 15.819 4.5 11 7.52 2.5 11 2.5s6.5 3.681 6.5 8.5Z'/%3E%3Cpath d='M13.5 11c0 2.447-.331 4.64-.853 6.206-.262.785-.562 1.384-.872 1.777-.314.399-.58.517-.775.517s-.461-.118-.775-.517c-.31-.393-.61-.992-.872-1.777C8.831 15.64 8.5 13.446 8.5 11s.331-4.64.853-6.206c.262-.785.562-1.384.872-1.777.314-.399.58-.517.775-.517s.461.118.775.517c.31.393.61.992.872 1.777.522 1.565.853 3.76.853 6.206Z'/%3E%3Cpath d='M11 7.5c-1.909 0-3.622-.166-4.845-.428-.616-.132-1.08-.283-1.379-.434a1.3 1.3 0 0 1-.224-.138q.07-.058.224-.138c.299-.151.763-.302 1.379-.434C7.378 5.666 9.091 5.5 11 5.5s3.622.166 4.845.428c.616.132 1.08.283 1.379.434.105.053.177.1.224.138q-.07.058-.224.138c-.299.151-.763.302-1.379.434-1.223.262-2.936.428-4.845.428ZM4.486 6.436ZM11 16.5c-1.909 0-3.622-.166-4.845-.428-.616-.132-1.08-.283-1.379-.434a1.3 1.3 0 0 1-.224-.138 1.3 1.3 0 0 1 .224-.138c.299-.151.763-.302 1.379-.434C7.378 14.666 9.091 14.5 11 14.5s3.622.166 4.845.428c.616.132 1.08.283 1.379.434.105.053.177.1.224.138a1.3 1.3 0 0 1-.224.138c-.299.151-.763.302-1.379.434-1.223.262-2.936.428-4.845.428Zm-6.514-1.064ZM11 12.5c-2.46 0-4.672-.222-6.255-.574-.796-.177-1.406-.38-1.805-.59a1.5 1.5 0 0 1-.39-.272.3.3 0 0 1-.047-.064.3.3 0 0 1 .048-.064c.066-.073.189-.167.389-.272.399-.21 1.009-.413 1.805-.59C6.328 9.722 8.54 9.5 11 9.5s4.672.222 6.256.574c.795.177 1.405.38 1.804.59.2.105.323.2.39.272a.3.3 0 0 1 .047.064.3.3 0 0 1-.048.064 1.4 1.4 0 0 1-.389.272c-.399.21-1.009.413-1.804.59-1.584.352-3.796.574-6.256.574Zm-8.501-1.51v.002zm0 .018v.002zm17.002.002v-.002zm0-.018v-.002z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-globe-enabled .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='none' stroke='%2333b5e5' viewBox='0 0 22 22'%3E%3Ccircle cx='11' cy='11' r='8.5'/%3E%3Cpath d='M17.5 11c0 4.819-3.02 8.5-6.5 8.5S4.5 15.819 4.5 11 7.52 2.5 11 2.5s6.5 3.681 6.5 8.5Z'/%3E%3Cpath d='M13.5 11c0 2.447-.331 4.64-.853 6.206-.262.785-.562 1.384-.872 1.777-.314.399-.58.517-.775.517s-.461-.118-.775-.517c-.31-.393-.61-.992-.872-1.777C8.831 15.64 8.5 13.446 8.5 11s.331-4.64.853-6.206c.262-.785.562-1.384.872-1.777.314-.399.58-.517.775-.517s.461.118.775.517c.31.393.61.992.872 1.777.522 1.565.853 3.76.853 6.206Z'/%3E%3Cpath d='M11 7.5c-1.909 0-3.622-.166-4.845-.428-.616-.132-1.08-.283-1.379-.434a1.3 1.3 0 0 1-.224-.138q.07-.058.224-.138c.299-.151.763-.302 1.379-.434C7.378 5.666 9.091 5.5 11 5.5s3.622.166 4.845.428c.616.132 1.08.283 1.379.434.105.053.177.1.224.138q-.07.058-.224.138c-.299.151-.763.302-1.379.434-1.223.262-2.936.428-4.845.428ZM4.486 6.436ZM11 16.5c-1.909 0-3.622-.166-4.845-.428-.616-.132-1.08-.283-1.379-.434a1.3 1.3 0 0 1-.224-.138 1.3 1.3 0 0 1 .224-.138c.299-.151.763-.302 1.379-.434C7.378 14.666 9.091 14.5 11 14.5s3.622.166 4.845.428c.616.132 1.08.283 1.379.434.105.053.177.1.224.138a1.3 1.3 0 0 1-.224.138c-.299.151-.763.302-1.379.434-1.223.262-2.936.428-4.845.428Zm-6.514-1.064ZM11 12.5c-2.46 0-4.672-.222-6.255-.574-.796-.177-1.406-.38-1.805-.59a1.5 1.5 0 0 1-.39-.272.3.3 0 0 1-.047-.064.3.3 0 0 1 .048-.064c.066-.073.189-.167.389-.272.399-.21 1.009-.413 1.805-.59C6.328 9.722 8.54 9.5 11 9.5s4.672.222 6.256.574c.795.177 1.405.38 1.804.59.2.105.323.2.39.272a.3.3 0 0 1 .047.064.3.3 0 0 1-.048.064 1.4 1.4 0 0 1-.389.272c-.399.21-1.009.413-1.804.59-1.584.352-3.796.574-6.256.574Zm-8.501-1.51v.002zm0 .018v.002zm17.002.002v-.002zm0-.018v-.002z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-terrain .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='%23333' viewBox='0 0 22 22'%3E%3Cpath d='m1.754 13.406 4.453-4.851 3.09 3.09 3.281 3.277.969-.969-3.309-3.312 3.844-4.121 6.148 6.886h1.082v-.855l-7.207-8.07-4.84 5.187L6.169 6.57l-5.48 5.965v.871ZM.688 16.844h20.625v1.375H.688Zm0 0'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-terrain-enabled .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='%2333b5e5' viewBox='0 0 22 22'%3E%3Cpath d='m1.754 13.406 4.453-4.851 3.09 3.09 3.281 3.277.969-.969-3.309-3.312 3.844-4.121 6.148 6.886h1.082v-.855l-7.207-8.07-4.84 5.187L6.169 6.57l-5.48 5.965v.871ZM.688 16.844h20.625v1.375H.688Zm0 0'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23333' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate:disabled .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23aaa' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3Cpath fill='red' d='m14 5 1 1-9 9-1-1z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%2333b5e5' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-active-error .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23e58978' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-background .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%2333b5e5' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-background-error .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23e54e33' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-waiting .maplibregl-ctrl-icon{animation:maplibregl-spin 2s linear infinite}@media (forced-colors:active){.maplibregl-ctrl button.maplibregl-ctrl-geolocate .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23fff' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate:disabled .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23999' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3Cpath fill='red' d='m14 5 1 1-9 9-1-1z'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%2333b5e5' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-active-error .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23e58978' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-background .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%2333b5e5' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-background-error .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23e54e33' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3C/svg%3E")}}@media (forced-colors:active) and (prefers-color-scheme:light){.maplibregl-ctrl button.maplibregl-ctrl-geolocate .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3C/svg%3E")}.maplibregl-ctrl button.maplibregl-ctrl-geolocate:disabled .maplibregl-ctrl-icon{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' fill='%23666' viewBox='0 0 20 20'%3E%3Cpath d='M10 4C9 4 9 5 9 5v.1A5 5 0 0 0 5.1 9H5s-1 0-1 1 1 1 1 1h.1A5 5 0 0 0 9 14.9v.1s0 1 1 1 1-1 1-1v-.1a5 5 0 0 0 3.9-3.9h.1s1 0 1-1-1-1-1-1h-.1A5 5 0 0 0 11 5.1V5s0-1-1-1m0 2.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 1 1 0-7'/%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3Cpath fill='red' d='m14 5 1 1-9 9-1-1z'/%3E%3C/svg%3E")}}@keyframes maplibregl-spin{0%{transform:rotate(0deg)}to{transform:rotate(1turn)}}a.maplibregl-ctrl-logo{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='23' fill='none'%3E%3Cpath fill='%23000' fill-opacity='.4' fill-rule='evenodd' d='M17.408 16.796h-1.827l2.501-12.095h.198l3.324 6.533.988 2.19.988-2.19 3.258-6.533h.181l2.6 12.095h-1.81l-1.218-5.644-.362-1.71-.658 1.71-2.929 5.644h-.098l-2.914-5.644-.757-1.71-.345 1.71zm1.958-3.42-.726 3.663a1.255 1.255 0 0 1-1.232 1.011h-1.827a1.255 1.255 0 0 1-1.229-1.509l2.501-12.095a1.255 1.255 0 0 1 1.23-1.001h.197a1.25 1.25 0 0 1 1.12.685l3.19 6.273 3.125-6.263a1.25 1.25 0 0 1 1.123-.695h.181a1.255 1.255 0 0 1 1.227.991l1.443 6.71a5 5 0 0 1 .314-.787l.009-.016a4.6 4.6 0 0 1 1.777-1.887c.782-.46 1.668-.667 2.611-.667a4.6 4.6 0 0 1 1.7.32l.306.134c.21-.16.474-.256.759-.256h1.694a1.255 1.255 0 0 1 1.212.925 1.255 1.255 0 0 1 1.212-.925h1.711c.284 0 .545.094.755.252.613-.3 1.312-.45 2.075-.45 1.356 0 2.557.445 3.482 1.4q.47.48.763 1.064V4.701a1.255 1.255 0 0 1 1.255-1.255h1.86A1.255 1.255 0 0 1 54.44 4.7v9.194h2.217c.19 0 .37.043.532.118v-4.77c0-.356.147-.678.385-.906a2.42 2.42 0 0 1-.682-1.71c0-.665.267-1.253.735-1.7a2.45 2.45 0 0 1 1.722-.674 2.43 2.43 0 0 1 1.705.675q.318.302.504.683V4.7a1.255 1.255 0 0 1 1.255-1.255h1.744A1.255 1.255 0 0 1 65.812 4.7v3.335a4.8 4.8 0 0 1 1.526-.246c.938 0 1.817.214 2.59.69a4.47 4.47 0 0 1 1.67 1.743v-.98a1.255 1.255 0 0 1 1.256-1.256h1.777c.233 0 .451.064.639.174a3.4 3.4 0 0 1 1.567-.372c.346 0 .861.02 1.285.232a1.25 1.25 0 0 1 .689 1.004 4.7 4.7 0 0 1 .853-.588c.795-.44 1.675-.647 2.61-.647 1.385 0 2.65.39 3.525 1.396.836.938 1.168 2.173 1.168 3.528q-.001.515-.056 1.051a1.255 1.255 0 0 1-.947 1.09l.408.952a1.255 1.255 0 0 1-.477 1.552c-.418.268-.92.463-1.458.612-.613.171-1.304.244-2.049.244-1.06 0-2.043-.207-2.886-.698l-.015-.008c-.798-.48-1.419-1.135-1.818-1.963l-.004-.008a5.8 5.8 0 0 1-.548-2.512q0-.429.053-.843a1.3 1.3 0 0 1-.333-.086l-.166-.004c-.223 0-.426.062-.643.228-.03.024-.142.139-.142.59v3.883a1.255 1.255 0 0 1-1.256 1.256h-1.777a1.255 1.255 0 0 1-1.256-1.256V15.69l-.032.057a4.8 4.8 0 0 1-1.86 1.833 5.04 5.04 0 0 1-2.484.634 4.5 4.5 0 0 1-1.935-.424 1.25 1.25 0 0 1-.764.258h-1.71a1.255 1.255 0 0 1-1.256-1.255V7.687a2.4 2.4 0 0 1-.428.625c.253.23.412.561.412.93v7.553a1.255 1.255 0 0 1-1.256 1.255h-1.843a1.25 1.25 0 0 1-.894-.373c-.228.23-.544.373-.894.373H51.32a1.255 1.255 0 0 1-1.256-1.255v-1.251l-.061.117a4.7 4.7 0 0 1-1.782 1.884 4.77 4.77 0 0 1-2.485.67 5.6 5.6 0 0 1-1.485-.188l.009 2.764a1.255 1.255 0 0 1-1.255 1.259h-1.729a1.255 1.255 0 0 1-1.255-1.255v-3.537a1.255 1.255 0 0 1-1.167.793h-1.679a1.25 1.25 0 0 1-.77-.263 4.5 4.5 0 0 1-1.945.429c-.885 0-1.724-.21-2.495-.632l-.017-.01a5 5 0 0 1-1.081-.836 1.255 1.255 0 0 1-1.254 1.312h-1.81a1.255 1.255 0 0 1-1.228-.99l-.782-3.625-2.044 3.939a1.25 1.25 0 0 1-1.115.676h-.098a1.25 1.25 0 0 1-1.116-.68l-2.061-3.994zM35.92 16.63l.207-.114.223-.15q.493-.356.735-.785l.061-.118.033 1.332h1.678V9.242h-1.694l-.033 1.267q-.133-.329-.526-.658l-.032-.028a3.2 3.2 0 0 0-.668-.428l-.27-.12a3.3 3.3 0 0 0-1.235-.23q-1.136-.001-1.974.493a3.36 3.36 0 0 0-1.3 1.382q-.445.89-.444 2.074 0 1.2.51 2.107a3.8 3.8 0 0 0 1.382 1.381 3.9 3.9 0 0 0 1.893.477q.795 0 1.455-.33zm-2.789-5.38q-.576.675-.575 1.762 0 1.102.559 1.794.576.675 1.645.675a2.25 2.25 0 0 0 .934-.19 2.2 2.2 0 0 0 .468-.29l.178-.161a2.2 2.2 0 0 0 .397-.561q.244-.5.244-1.15v-.115q0-.708-.296-1.267l-.043-.077a2.2 2.2 0 0 0-.633-.709l-.13-.086-.047-.028a2.1 2.1 0 0 0-1.073-.285q-1.052 0-1.629.692zm2.316 2.706c.163-.17.28-.407.28-.83v-.114c0-.292-.06-.508-.15-.68a.96.96 0 0 0-.353-.389.85.85 0 0 0-.464-.127c-.4 0-.56.114-.664.239l-.01.012c-.148.174-.275.45-.275.945 0 .506.122.801.27.99.097.11.266.224.68.224.303 0 .504-.09.687-.269zm7.545 1.705a2.6 2.6 0 0 0 .331.423q.319.33.755.548l.173.074q.65.255 1.49.255 1.02 0 1.844-.493a3.45 3.45 0 0 0 1.316-1.4q.493-.904.493-2.089 0-1.909-.988-2.913-.988-1.02-2.584-1.02-.898 0-1.575.347a3 3 0 0 0-.415.262l-.199.166a3.4 3.4 0 0 0-.64.82V9.242h-1.712v11.553h1.729l-.017-5.134zm.53-1.138q.206.29.48.5l.155.11.053.034q.51.296 1.119.297 1.07 0 1.645-.675.577-.69.576-1.762 0-1.119-.576-1.777-.558-.675-1.645-.675-.435 0-.835.16a2 2 0 0 0-.284.136 2 2 0 0 0-.363.254 2.2 2.2 0 0 0-.46.569l-.082.162a2.6 2.6 0 0 0-.213 1.072v.115q0 .707.296 1.267l.135.211zm.964-.818a1.1 1.1 0 0 0 .367.385.94.94 0 0 0 .476.118c.423 0 .59-.117.687-.23.159-.194.28-.478.28-.95 0-.53-.133-.8-.266-.952l-.021-.025c-.078-.094-.231-.221-.68-.221a1 1 0 0 0-.503.135l-.012.007a.86.86 0 0 0-.335.343c-.073.133-.132.324-.132.614v.115a1.4 1.4 0 0 0 .14.66zm15.7-6.222q.347-.346.346-.856a1.05 1.05 0 0 0-.345-.79 1.18 1.18 0 0 0-.84-.329q-.51 0-.855.33a1.05 1.05 0 0 0-.346.79q0 .51.346.855.345.346.856.346.51 0 .839-.346zm4.337 9.314.033-1.332q.191.403.59.747l.098.081a4 4 0 0 0 .316.224l.223.122a3.2 3.2 0 0 0 1.44.322 3.8 3.8 0 0 0 1.875-.477 3.5 3.5 0 0 0 1.382-1.366q.527-.89.526-2.09 0-1.184-.444-2.073a3.24 3.24 0 0 0-1.283-1.399q-.823-.51-1.942-.51a3.5 3.5 0 0 0-1.527.344l-.086.043-.165.09a3 3 0 0 0-.33.214q-.432.315-.656.707a2 2 0 0 0-.099.198l.082-1.283V4.701h-1.744v12.095zm.473-2.509a2.5 2.5 0 0 0 .566.7q.117.098.245.18l.144.08a2.1 2.1 0 0 0 .975.232q1.07 0 1.645-.675.576-.69.576-1.778 0-1.102-.576-1.777-.56-.691-1.645-.692a2.2 2.2 0 0 0-1.015.235q-.22.113-.415.282l-.15.142a2.1 2.1 0 0 0-.42.594q-.223.479-.223 1.1v.115q0 .705.293 1.26zm2.616-.293c.157-.191.28-.479.28-.967 0-.51-.13-.79-.276-.961l-.021-.026c-.082-.1-.232-.225-.67-.225a.87.87 0 0 0-.681.279l-.012.011c-.154.155-.274.38-.274.807v.115c0 .285.057.499.144.669a1.1 1.1 0 0 0 .367.405c.137.082.28.123.455.123.423 0 .59-.118.686-.23zm8.266-3.013q.345-.13.724-.14l.069-.002q.493 0 .642.099l.247-1.794q-.196-.099-.717-.099a2.3 2.3 0 0 0-.545.063 2 2 0 0 0-.411.148 2.2 2.2 0 0 0-.4.249 2.5 2.5 0 0 0-.485.499 2.7 2.7 0 0 0-.32.581l-.05.137v-1.48h-1.778v7.553h1.777v-3.884q0-.546.159-.943a1.5 1.5 0 0 1 .466-.636 2.5 2.5 0 0 1 .399-.253 2 2 0 0 1 .224-.099zm9.784 2.656.05-.922q0-1.743-.856-2.698-.838-.97-2.584-.97-1.119-.001-2.007.493a3.46 3.46 0 0 0-1.4 1.382q-.493.906-.493 2.106 0 1.07.428 1.975.428.89 1.332 1.432.906.526 2.255.526.973 0 1.668-.185l.044-.012.135-.04q.613-.184.984-.421l-.542-1.267q-.3.162-.642.274l-.297.087q-.51.131-1.3.131-.954 0-1.497-.444a1.6 1.6 0 0 1-.192-.193q-.366-.44-.512-1.234l-.004-.021zm-5.427-1.256-.003.022h3.752v-.138q-.011-.727-.288-1.118a1 1 0 0 0-.156-.176q-.46-.428-1.316-.428-.986 0-1.494.604-.379.45-.494 1.234zm-27.053 2.77V4.7h-1.86v12.095h5.333V15.15zm7.103-5.908v7.553h-1.843V9.242h1.843z'/%3E%3Cpath fill='%23fff' d='m19.63 11.151-.757-1.71-.345 1.71-1.12 5.644h-1.827L18.083 4.7h.197l3.325 6.533.988 2.19.988-2.19L26.839 4.7h.181l2.6 12.095h-1.81l-1.218-5.644-.362-1.71-.658 1.71-2.93 5.644h-.098l-2.913-5.644zm14.836 5.81q-1.02 0-1.893-.478a3.8 3.8 0 0 1-1.381-1.382q-.51-.906-.51-2.106 0-1.185.444-2.074a3.36 3.36 0 0 1 1.3-1.382q.839-.494 1.974-.494a3.3 3.3 0 0 1 1.234.231 3.3 3.3 0 0 1 .97.575q.396.33.527.659l.033-1.267h1.694v7.553H37.18l-.033-1.332q-.279.593-1.02 1.053a3.17 3.17 0 0 1-1.662.444zm.296-1.482q.938 0 1.58-.642.642-.66.642-1.711v-.115q0-.708-.296-1.267a2.2 2.2 0 0 0-.807-.872 2.1 2.1 0 0 0-1.119-.313q-1.053 0-1.629.692-.575.675-.575 1.76 0 1.103.559 1.795.577.675 1.645.675zm6.521-6.237h1.711v1.4q.906-1.597 2.83-1.597 1.596 0 2.584 1.02.988 1.005.988 2.914 0 1.185-.493 2.09a3.46 3.46 0 0 1-1.316 1.399 3.5 3.5 0 0 1-1.844.493q-.954 0-1.662-.329a2.67 2.67 0 0 1-1.086-.97l.017 5.134h-1.728zm4.048 6.22q1.07 0 1.645-.674.577-.69.576-1.762 0-1.119-.576-1.777-.558-.675-1.645-.675-.592 0-1.12.296-.51.28-.822.823-.296.527-.296 1.234v.115q0 .708.296 1.267.313.543.823.855.51.296 1.119.297z'/%3E%3Cpath fill='%23e1e3e9' d='M51.325 4.7h1.86v10.45h3.473v1.646h-5.333zm7.12 4.542h1.843v7.553h-1.843zm.905-1.415a1.16 1.16 0 0 1-.856-.346 1.17 1.17 0 0 1-.346-.856 1.05 1.05 0 0 1 .346-.79q.346-.329.856-.329.494 0 .839.33a1.05 1.05 0 0 1 .345.79 1.16 1.16 0 0 1-.345.855q-.33.346-.84.346zm7.875 9.133a3.17 3.17 0 0 1-1.662-.444q-.723-.46-1.004-1.053l-.033 1.332h-1.71V4.701h1.743v4.657l-.082 1.283q.279-.658 1.086-1.119a3.5 3.5 0 0 1 1.778-.477q1.119 0 1.942.51a3.24 3.24 0 0 1 1.283 1.4q.445.888.444 2.072 0 1.201-.526 2.09a3.5 3.5 0 0 1-1.382 1.366 3.8 3.8 0 0 1-1.876.477zm-.296-1.481q1.069 0 1.645-.675.577-.69.577-1.778 0-1.102-.577-1.776-.56-.691-1.645-.692a2.12 2.12 0 0 0-1.58.659q-.642.641-.642 1.694v.115q0 .71.296 1.267a2.4 2.4 0 0 0 .807.872 2.1 2.1 0 0 0 1.119.313zm5.927-6.237h1.777v1.481q.263-.757.856-1.217a2.14 2.14 0 0 1 1.349-.46q.527 0 .724.098l-.247 1.794q-.149-.099-.642-.099-.774 0-1.416.494-.626.493-.626 1.58v3.883h-1.777V9.242zm9.534 7.718q-1.35 0-2.255-.526-.904-.543-1.332-1.432a4.6 4.6 0 0 1-.428-1.975q0-1.2.493-2.106a3.46 3.46 0 0 1 1.4-1.382q.889-.495 2.007-.494 1.744 0 2.584.97.855.956.856 2.7 0 .444-.05.92h-5.43q.18 1.005.708 1.45.542.443 1.497.443.79 0 1.3-.131a4 4 0 0 0 .938-.362l.542 1.267q-.411.263-1.119.46-.708.198-1.711.197zm1.596-4.558q.016-1.02-.444-1.432-.46-.428-1.316-.428-1.728 0-1.991 1.86z'/%3E%3Cpath d='M5.074 15.948a.484.657 0 0 0-.486.659v1.84a.484.657 0 0 0 .486.659h4.101a.484.657 0 0 0 .486-.659v-1.84a.484.657 0 0 0-.486-.659zm3.56 1.16H5.617v.838h3.017z' style='fill:%23fff;fill-rule:evenodd;stroke-width:1.03600001'/%3E%3Cg style='stroke-width:1.12603545'%3E%3Cpath d='M-9.408-1.416c-3.833-.025-7.056 2.912-7.08 6.615-.02 3.08 1.653 4.832 3.107 6.268.903.892 1.721 1.74 2.32 2.902l-.525-.004c-.543-.003-.992.304-1.24.639a1.87 1.87 0 0 0-.362 1.121l-.011 1.877c-.003.402.104.787.347 1.125.244.338.688.653 1.23.656l4.142.028c.542.003.99-.306 1.238-.641a1.87 1.87 0 0 0 .363-1.121l.012-1.875a1.87 1.87 0 0 0-.348-1.127c-.243-.338-.688-.653-1.23-.656l-.518-.004c.597-1.145 1.425-1.983 2.348-2.87 1.473-1.414 3.18-3.149 3.2-6.226-.016-3.59-2.923-6.684-6.993-6.707m-.006 1.1v.002c3.274.02 5.92 2.532 5.9 5.6-.017 2.706-1.39 4.026-2.863 5.44-1.034.994-2.118 2.033-2.814 3.633-.018.041-.052.055-.075.065q-.013.004-.02.01a.34.34 0 0 1-.226.084.34.34 0 0 1-.224-.086l-.092-.077c-.699-1.615-1.768-2.669-2.781-3.67-1.454-1.435-2.797-2.762-2.78-5.478.02-3.067 2.7-5.545 5.975-5.523m-.02 2.826c-1.62-.01-2.944 1.315-2.955 2.96-.01 1.646 1.295 2.988 2.916 2.999h.002c1.621.01 2.943-1.316 2.953-2.961.011-1.646-1.294-2.988-2.916-2.998m-.005 1.1c1.017.006 1.829.83 1.822 1.89s-.83 1.874-1.848 1.867c-1.018-.006-1.829-.83-1.822-1.89s.83-1.874 1.848-1.868m-2.155 11.857 4.14.025c.271.002.49.305.487.676l-.013 1.875c-.003.37-.224.67-.495.668l-4.14-.025c-.27-.002-.487-.306-.485-.676l.012-1.875c.003-.37.224-.67.494-.668' style='color:%23000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:%23000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:evenodd;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:%23000;solid-opacity:1;vector-effect:none;fill:%23000;fill-opacity:.4;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto' transform='translate(15.553 2.85)scale(.88807)'/%3E%3Cpath d='M-9.415-.316C-12.69-.338-15.37 2.14-15.39 5.207c-.017 2.716 1.326 4.041 2.78 5.477 1.013 1 2.081 2.055 2.78 3.67l.092.076a.34.34 0 0 0 .225.086.34.34 0 0 0 .227-.083l.019-.01c.022-.009.057-.024.074-.064.697-1.6 1.78-2.64 2.814-3.634 1.473-1.414 2.847-2.733 2.864-5.44.02-3.067-2.627-5.58-5.901-5.601m-.057 8.784c1.621.011 2.944-1.315 2.955-2.96.01-1.646-1.295-2.988-2.916-2.999-1.622-.01-2.945 1.315-2.955 2.96s1.295 2.989 2.916 3' style='clip-rule:evenodd;fill:%23e1e3e9;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:.4' transform='translate(15.553 2.85)scale(.88807)'/%3E%3Cpath d='M-11.594 15.465c-.27-.002-.492.297-.494.668l-.012 1.876c-.003.371.214.673.485.675l4.14.027c.271.002.492-.298.495-.668l.012-1.877c.003-.37-.215-.672-.485-.674z' style='clip-rule:evenodd;fill:%23fff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:.4' transform='translate(15.553 2.85)scale(.88807)'/%3E%3C/g%3E%3C/svg%3E");background-repeat:no-repeat;cursor:pointer;display:block;height:23px;margin:0 0 -4px -4px;overflow:hidden;width:88px}a.maplibregl-ctrl-logo.maplibregl-compact{width:14px}@media (forced-colors:active){a.maplibregl-ctrl-logo{background-color:transparent;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='23' fill='none'%3E%3Cpath fill='%23000' fill-opacity='.4' fill-rule='evenodd' d='M17.408 16.796h-1.827l2.501-12.095h.198l3.324 6.533.988 2.19.988-2.19 3.258-6.533h.181l2.6 12.095h-1.81l-1.218-5.644-.362-1.71-.658 1.71-2.929 5.644h-.098l-2.914-5.644-.757-1.71-.345 1.71zm1.958-3.42-.726 3.663a1.255 1.255 0 0 1-1.232 1.011h-1.827a1.255 1.255 0 0 1-1.229-1.509l2.501-12.095a1.255 1.255 0 0 1 1.23-1.001h.197a1.25 1.25 0 0 1 1.12.685l3.19 6.273 3.125-6.263a1.25 1.25 0 0 1 1.123-.695h.181a1.255 1.255 0 0 1 1.227.991l1.443 6.71a5 5 0 0 1 .314-.787l.009-.016a4.6 4.6 0 0 1 1.777-1.887c.782-.46 1.668-.667 2.611-.667a4.6 4.6 0 0 1 1.7.32l.306.134c.21-.16.474-.256.759-.256h1.694a1.255 1.255 0 0 1 1.212.925 1.255 1.255 0 0 1 1.212-.925h1.711c.284 0 .545.094.755.252.613-.3 1.312-.45 2.075-.45 1.356 0 2.557.445 3.482 1.4q.47.48.763 1.064V4.701a1.255 1.255 0 0 1 1.255-1.255h1.86A1.255 1.255 0 0 1 54.44 4.7v9.194h2.217c.19 0 .37.043.532.118v-4.77c0-.356.147-.678.385-.906a2.42 2.42 0 0 1-.682-1.71c0-.665.267-1.253.735-1.7a2.45 2.45 0 0 1 1.722-.674 2.43 2.43 0 0 1 1.705.675q.318.302.504.683V4.7a1.255 1.255 0 0 1 1.255-1.255h1.744A1.255 1.255 0 0 1 65.812 4.7v3.335a4.8 4.8 0 0 1 1.526-.246c.938 0 1.817.214 2.59.69a4.47 4.47 0 0 1 1.67 1.743v-.98a1.255 1.255 0 0 1 1.256-1.256h1.777c.233 0 .451.064.639.174a3.4 3.4 0 0 1 1.567-.372c.346 0 .861.02 1.285.232a1.25 1.25 0 0 1 .689 1.004 4.7 4.7 0 0 1 .853-.588c.795-.44 1.675-.647 2.61-.647 1.385 0 2.65.39 3.525 1.396.836.938 1.168 2.173 1.168 3.528q-.001.515-.056 1.051a1.255 1.255 0 0 1-.947 1.09l.408.952a1.255 1.255 0 0 1-.477 1.552c-.418.268-.92.463-1.458.612-.613.171-1.304.244-2.049.244-1.06 0-2.043-.207-2.886-.698l-.015-.008c-.798-.48-1.419-1.135-1.818-1.963l-.004-.008a5.8 5.8 0 0 1-.548-2.512q0-.429.053-.843a1.3 1.3 0 0 1-.333-.086l-.166-.004c-.223 0-.426.062-.643.228-.03.024-.142.139-.142.59v3.883a1.255 1.255 0 0 1-1.256 1.256h-1.777a1.255 1.255 0 0 1-1.256-1.256V15.69l-.032.057a4.8 4.8 0 0 1-1.86 1.833 5.04 5.04 0 0 1-2.484.634 4.5 4.5 0 0 1-1.935-.424 1.25 1.25 0 0 1-.764.258h-1.71a1.255 1.255 0 0 1-1.256-1.255V7.687a2.4 2.4 0 0 1-.428.625c.253.23.412.561.412.93v7.553a1.255 1.255 0 0 1-1.256 1.255h-1.843a1.25 1.25 0 0 1-.894-.373c-.228.23-.544.373-.894.373H51.32a1.255 1.255 0 0 1-1.256-1.255v-1.251l-.061.117a4.7 4.7 0 0 1-1.782 1.884 4.77 4.77 0 0 1-2.485.67 5.6 5.6 0 0 1-1.485-.188l.009 2.764a1.255 1.255 0 0 1-1.255 1.259h-1.729a1.255 1.255 0 0 1-1.255-1.255v-3.537a1.255 1.255 0 0 1-1.167.793h-1.679a1.25 1.25 0 0 1-.77-.263 4.5 4.5 0 0 1-1.945.429c-.885 0-1.724-.21-2.495-.632l-.017-.01a5 5 0 0 1-1.081-.836 1.255 1.255 0 0 1-1.254 1.312h-1.81a1.255 1.255 0 0 1-1.228-.99l-.782-3.625-2.044 3.939a1.25 1.25 0 0 1-1.115.676h-.098a1.25 1.25 0 0 1-1.116-.68l-2.061-3.994zM35.92 16.63l.207-.114.223-.15q.493-.356.735-.785l.061-.118.033 1.332h1.678V9.242h-1.694l-.033 1.267q-.133-.329-.526-.658l-.032-.028a3.2 3.2 0 0 0-.668-.428l-.27-.12a3.3 3.3 0 0 0-1.235-.23q-1.136-.001-1.974.493a3.36 3.36 0 0 0-1.3 1.382q-.445.89-.444 2.074 0 1.2.51 2.107a3.8 3.8 0 0 0 1.382 1.381 3.9 3.9 0 0 0 1.893.477q.795 0 1.455-.33zm-2.789-5.38q-.576.675-.575 1.762 0 1.102.559 1.794.576.675 1.645.675a2.25 2.25 0 0 0 .934-.19 2.2 2.2 0 0 0 .468-.29l.178-.161a2.2 2.2 0 0 0 .397-.561q.244-.5.244-1.15v-.115q0-.708-.296-1.267l-.043-.077a2.2 2.2 0 0 0-.633-.709l-.13-.086-.047-.028a2.1 2.1 0 0 0-1.073-.285q-1.052 0-1.629.692zm2.316 2.706c.163-.17.28-.407.28-.83v-.114c0-.292-.06-.508-.15-.68a.96.96 0 0 0-.353-.389.85.85 0 0 0-.464-.127c-.4 0-.56.114-.664.239l-.01.012c-.148.174-.275.45-.275.945 0 .506.122.801.27.99.097.11.266.224.68.224.303 0 .504-.09.687-.269zm7.545 1.705a2.6 2.6 0 0 0 .331.423q.319.33.755.548l.173.074q.65.255 1.49.255 1.02 0 1.844-.493a3.45 3.45 0 0 0 1.316-1.4q.493-.904.493-2.089 0-1.909-.988-2.913-.988-1.02-2.584-1.02-.898 0-1.575.347a3 3 0 0 0-.415.262l-.199.166a3.4 3.4 0 0 0-.64.82V9.242h-1.712v11.553h1.729l-.017-5.134zm.53-1.138q.206.29.48.5l.155.11.053.034q.51.296 1.119.297 1.07 0 1.645-.675.577-.69.576-1.762 0-1.119-.576-1.777-.558-.675-1.645-.675-.435 0-.835.16a2 2 0 0 0-.284.136 2 2 0 0 0-.363.254 2.2 2.2 0 0 0-.46.569l-.082.162a2.6 2.6 0 0 0-.213 1.072v.115q0 .707.296 1.267l.135.211zm.964-.818a1.1 1.1 0 0 0 .367.385.94.94 0 0 0 .476.118c.423 0 .59-.117.687-.23.159-.194.28-.478.28-.95 0-.53-.133-.8-.266-.952l-.021-.025c-.078-.094-.231-.221-.68-.221a1 1 0 0 0-.503.135l-.012.007a.86.86 0 0 0-.335.343c-.073.133-.132.324-.132.614v.115a1.4 1.4 0 0 0 .14.66zm15.7-6.222q.347-.346.346-.856a1.05 1.05 0 0 0-.345-.79 1.18 1.18 0 0 0-.84-.329q-.51 0-.855.33a1.05 1.05 0 0 0-.346.79q0 .51.346.855.345.346.856.346.51 0 .839-.346zm4.337 9.314.033-1.332q.191.403.59.747l.098.081a4 4 0 0 0 .316.224l.223.122a3.2 3.2 0 0 0 1.44.322 3.8 3.8 0 0 0 1.875-.477 3.5 3.5 0 0 0 1.382-1.366q.527-.89.526-2.09 0-1.184-.444-2.073a3.24 3.24 0 0 0-1.283-1.399q-.823-.51-1.942-.51a3.5 3.5 0 0 0-1.527.344l-.086.043-.165.09a3 3 0 0 0-.33.214q-.432.315-.656.707a2 2 0 0 0-.099.198l.082-1.283V4.701h-1.744v12.095zm.473-2.509a2.5 2.5 0 0 0 .566.7q.117.098.245.18l.144.08a2.1 2.1 0 0 0 .975.232q1.07 0 1.645-.675.576-.69.576-1.778 0-1.102-.576-1.777-.56-.691-1.645-.692a2.2 2.2 0 0 0-1.015.235q-.22.113-.415.282l-.15.142a2.1 2.1 0 0 0-.42.594q-.223.479-.223 1.1v.115q0 .705.293 1.26zm2.616-.293c.157-.191.28-.479.28-.967 0-.51-.13-.79-.276-.961l-.021-.026c-.082-.1-.232-.225-.67-.225a.87.87 0 0 0-.681.279l-.012.011c-.154.155-.274.38-.274.807v.115c0 .285.057.499.144.669a1.1 1.1 0 0 0 .367.405c.137.082.28.123.455.123.423 0 .59-.118.686-.23zm8.266-3.013q.345-.13.724-.14l.069-.002q.493 0 .642.099l.247-1.794q-.196-.099-.717-.099a2.3 2.3 0 0 0-.545.063 2 2 0 0 0-.411.148 2.2 2.2 0 0 0-.4.249 2.5 2.5 0 0 0-.485.499 2.7 2.7 0 0 0-.32.581l-.05.137v-1.48h-1.778v7.553h1.777v-3.884q0-.546.159-.943a1.5 1.5 0 0 1 .466-.636 2.5 2.5 0 0 1 .399-.253 2 2 0 0 1 .224-.099zm9.784 2.656.05-.922q0-1.743-.856-2.698-.838-.97-2.584-.97-1.119-.001-2.007.493a3.46 3.46 0 0 0-1.4 1.382q-.493.906-.493 2.106 0 1.07.428 1.975.428.89 1.332 1.432.906.526 2.255.526.973 0 1.668-.185l.044-.012.135-.04q.613-.184.984-.421l-.542-1.267q-.3.162-.642.274l-.297.087q-.51.131-1.3.131-.954 0-1.497-.444a1.6 1.6 0 0 1-.192-.193q-.366-.44-.512-1.234l-.004-.021zm-5.427-1.256-.003.022h3.752v-.138q-.011-.727-.288-1.118a1 1 0 0 0-.156-.176q-.46-.428-1.316-.428-.986 0-1.494.604-.379.45-.494 1.234zm-27.053 2.77V4.7h-1.86v12.095h5.333V15.15zm7.103-5.908v7.553h-1.843V9.242h1.843z'/%3E%3Cpath fill='%23fff' d='m19.63 11.151-.757-1.71-.345 1.71-1.12 5.644h-1.827L18.083 4.7h.197l3.325 6.533.988 2.19.988-2.19L26.839 4.7h.181l2.6 12.095h-1.81l-1.218-5.644-.362-1.71-.658 1.71-2.93 5.644h-.098l-2.913-5.644zm14.836 5.81q-1.02 0-1.893-.478a3.8 3.8 0 0 1-1.381-1.382q-.51-.906-.51-2.106 0-1.185.444-2.074a3.36 3.36 0 0 1 1.3-1.382q.839-.494 1.974-.494a3.3 3.3 0 0 1 1.234.231 3.3 3.3 0 0 1 .97.575q.396.33.527.659l.033-1.267h1.694v7.553H37.18l-.033-1.332q-.279.593-1.02 1.053a3.17 3.17 0 0 1-1.662.444zm.296-1.482q.938 0 1.58-.642.642-.66.642-1.711v-.115q0-.708-.296-1.267a2.2 2.2 0 0 0-.807-.872 2.1 2.1 0 0 0-1.119-.313q-1.053 0-1.629.692-.575.675-.575 1.76 0 1.103.559 1.795.577.675 1.645.675zm6.521-6.237h1.711v1.4q.906-1.597 2.83-1.597 1.596 0 2.584 1.02.988 1.005.988 2.914 0 1.185-.493 2.09a3.46 3.46 0 0 1-1.316 1.399 3.5 3.5 0 0 1-1.844.493q-.954 0-1.662-.329a2.67 2.67 0 0 1-1.086-.97l.017 5.134h-1.728zm4.048 6.22q1.07 0 1.645-.674.577-.69.576-1.762 0-1.119-.576-1.777-.558-.675-1.645-.675-.592 0-1.12.296-.51.28-.822.823-.296.527-.296 1.234v.115q0 .708.296 1.267.313.543.823.855.51.296 1.119.297z'/%3E%3Cpath fill='%23e1e3e9' d='M51.325 4.7h1.86v10.45h3.473v1.646h-5.333zm7.12 4.542h1.843v7.553h-1.843zm.905-1.415a1.16 1.16 0 0 1-.856-.346 1.17 1.17 0 0 1-.346-.856 1.05 1.05 0 0 1 .346-.79q.346-.329.856-.329.494 0 .839.33a1.05 1.05 0 0 1 .345.79 1.16 1.16 0 0 1-.345.855q-.33.346-.84.346zm7.875 9.133a3.17 3.17 0 0 1-1.662-.444q-.723-.46-1.004-1.053l-.033 1.332h-1.71V4.701h1.743v4.657l-.082 1.283q.279-.658 1.086-1.119a3.5 3.5 0 0 1 1.778-.477q1.119 0 1.942.51a3.24 3.24 0 0 1 1.283 1.4q.445.888.444 2.072 0 1.201-.526 2.09a3.5 3.5 0 0 1-1.382 1.366 3.8 3.8 0 0 1-1.876.477zm-.296-1.481q1.069 0 1.645-.675.577-.69.577-1.778 0-1.102-.577-1.776-.56-.691-1.645-.692a2.12 2.12 0 0 0-1.58.659q-.642.641-.642 1.694v.115q0 .71.296 1.267a2.4 2.4 0 0 0 .807.872 2.1 2.1 0 0 0 1.119.313zm5.927-6.237h1.777v1.481q.263-.757.856-1.217a2.14 2.14 0 0 1 1.349-.46q.527 0 .724.098l-.247 1.794q-.149-.099-.642-.099-.774 0-1.416.494-.626.493-.626 1.58v3.883h-1.777V9.242zm9.534 7.718q-1.35 0-2.255-.526-.904-.543-1.332-1.432a4.6 4.6 0 0 1-.428-1.975q0-1.2.493-2.106a3.46 3.46 0 0 1 1.4-1.382q.889-.495 2.007-.494 1.744 0 2.584.97.855.956.856 2.7 0 .444-.05.92h-5.43q.18 1.005.708 1.45.542.443 1.497.443.79 0 1.3-.131a4 4 0 0 0 .938-.362l.542 1.267q-.411.263-1.119.46-.708.198-1.711.197zm1.596-4.558q.016-1.02-.444-1.432-.46-.428-1.316-.428-1.728 0-1.991 1.86z'/%3E%3Cpath d='M5.074 15.948a.484.657 0 0 0-.486.659v1.84a.484.657 0 0 0 .486.659h4.101a.484.657 0 0 0 .486-.659v-1.84a.484.657 0 0 0-.486-.659zm3.56 1.16H5.617v.838h3.017z' style='fill:%23fff;fill-rule:evenodd;stroke-width:1.03600001'/%3E%3Cg style='stroke-width:1.12603545'%3E%3Cpath d='M-9.408-1.416c-3.833-.025-7.056 2.912-7.08 6.615-.02 3.08 1.653 4.832 3.107 6.268.903.892 1.721 1.74 2.32 2.902l-.525-.004c-.543-.003-.992.304-1.24.639a1.87 1.87 0 0 0-.362 1.121l-.011 1.877c-.003.402.104.787.347 1.125.244.338.688.653 1.23.656l4.142.028c.542.003.99-.306 1.238-.641a1.87 1.87 0 0 0 .363-1.121l.012-1.875a1.87 1.87 0 0 0-.348-1.127c-.243-.338-.688-.653-1.23-.656l-.518-.004c.597-1.145 1.425-1.983 2.348-2.87 1.473-1.414 3.18-3.149 3.2-6.226-.016-3.59-2.923-6.684-6.993-6.707m-.006 1.1v.002c3.274.02 5.92 2.532 5.9 5.6-.017 2.706-1.39 4.026-2.863 5.44-1.034.994-2.118 2.033-2.814 3.633-.018.041-.052.055-.075.065q-.013.004-.02.01a.34.34 0 0 1-.226.084.34.34 0 0 1-.224-.086l-.092-.077c-.699-1.615-1.768-2.669-2.781-3.67-1.454-1.435-2.797-2.762-2.78-5.478.02-3.067 2.7-5.545 5.975-5.523m-.02 2.826c-1.62-.01-2.944 1.315-2.955 2.96-.01 1.646 1.295 2.988 2.916 2.999h.002c1.621.01 2.943-1.316 2.953-2.961.011-1.646-1.294-2.988-2.916-2.998m-.005 1.1c1.017.006 1.829.83 1.822 1.89s-.83 1.874-1.848 1.867c-1.018-.006-1.829-.83-1.822-1.89s.83-1.874 1.848-1.868m-2.155 11.857 4.14.025c.271.002.49.305.487.676l-.013 1.875c-.003.37-.224.67-.495.668l-4.14-.025c-.27-.002-.487-.306-.485-.676l.012-1.875c.003-.37.224-.67.494-.668' style='color:%23000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:%23000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:evenodd;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:%23000;solid-opacity:1;vector-effect:none;fill:%23000;fill-opacity:.4;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto' transform='translate(15.553 2.85)scale(.88807)'/%3E%3Cpath d='M-9.415-.316C-12.69-.338-15.37 2.14-15.39 5.207c-.017 2.716 1.326 4.041 2.78 5.477 1.013 1 2.081 2.055 2.78 3.67l.092.076a.34.34 0 0 0 .225.086.34.34 0 0 0 .227-.083l.019-.01c.022-.009.057-.024.074-.064.697-1.6 1.78-2.64 2.814-3.634 1.473-1.414 2.847-2.733 2.864-5.44.02-3.067-2.627-5.58-5.901-5.601m-.057 8.784c1.621.011 2.944-1.315 2.955-2.96.01-1.646-1.295-2.988-2.916-2.999-1.622-.01-2.945 1.315-2.955 2.96s1.295 2.989 2.916 3' style='clip-rule:evenodd;fill:%23e1e3e9;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:.4' transform='translate(15.553 2.85)scale(.88807)'/%3E%3Cpath d='M-11.594 15.465c-.27-.002-.492.297-.494.668l-.012 1.876c-.003.371.214.673.485.675l4.14.027c.271.002.492-.298.495-.668l.012-1.877c.003-.37-.215-.672-.485-.674z' style='clip-rule:evenodd;fill:%23fff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:.4' transform='translate(15.553 2.85)scale(.88807)'/%3E%3C/g%3E%3C/svg%3E")}}@media (forced-colors:active) and (prefers-color-scheme:light){a.maplibregl-ctrl-logo{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='23' fill='none'%3E%3Cpath fill='%23000' fill-opacity='.4' fill-rule='evenodd' d='M17.408 16.796h-1.827l2.501-12.095h.198l3.324 6.533.988 2.19.988-2.19 3.258-6.533h.181l2.6 12.095h-1.81l-1.218-5.644-.362-1.71-.658 1.71-2.929 5.644h-.098l-2.914-5.644-.757-1.71-.345 1.71zm1.958-3.42-.726 3.663a1.255 1.255 0 0 1-1.232 1.011h-1.827a1.255 1.255 0 0 1-1.229-1.509l2.501-12.095a1.255 1.255 0 0 1 1.23-1.001h.197a1.25 1.25 0 0 1 1.12.685l3.19 6.273 3.125-6.263a1.25 1.25 0 0 1 1.123-.695h.181a1.255 1.255 0 0 1 1.227.991l1.443 6.71a5 5 0 0 1 .314-.787l.009-.016a4.6 4.6 0 0 1 1.777-1.887c.782-.46 1.668-.667 2.611-.667a4.6 4.6 0 0 1 1.7.32l.306.134c.21-.16.474-.256.759-.256h1.694a1.255 1.255 0 0 1 1.212.925 1.255 1.255 0 0 1 1.212-.925h1.711c.284 0 .545.094.755.252.613-.3 1.312-.45 2.075-.45 1.356 0 2.557.445 3.482 1.4q.47.48.763 1.064V4.701a1.255 1.255 0 0 1 1.255-1.255h1.86A1.255 1.255 0 0 1 54.44 4.7v9.194h2.217c.19 0 .37.043.532.118v-4.77c0-.356.147-.678.385-.906a2.42 2.42 0 0 1-.682-1.71c0-.665.267-1.253.735-1.7a2.45 2.45 0 0 1 1.722-.674 2.43 2.43 0 0 1 1.705.675q.318.302.504.683V4.7a1.255 1.255 0 0 1 1.255-1.255h1.744A1.255 1.255 0 0 1 65.812 4.7v3.335a4.8 4.8 0 0 1 1.526-.246c.938 0 1.817.214 2.59.69a4.47 4.47 0 0 1 1.67 1.743v-.98a1.255 1.255 0 0 1 1.256-1.256h1.777c.233 0 .451.064.639.174a3.4 3.4 0 0 1 1.567-.372c.346 0 .861.02 1.285.232a1.25 1.25 0 0 1 .689 1.004 4.7 4.7 0 0 1 .853-.588c.795-.44 1.675-.647 2.61-.647 1.385 0 2.65.39 3.525 1.396.836.938 1.168 2.173 1.168 3.528q-.001.515-.056 1.051a1.255 1.255 0 0 1-.947 1.09l.408.952a1.255 1.255 0 0 1-.477 1.552c-.418.268-.92.463-1.458.612-.613.171-1.304.244-2.049.244-1.06 0-2.043-.207-2.886-.698l-.015-.008c-.798-.48-1.419-1.135-1.818-1.963l-.004-.008a5.8 5.8 0 0 1-.548-2.512q0-.429.053-.843a1.3 1.3 0 0 1-.333-.086l-.166-.004c-.223 0-.426.062-.643.228-.03.024-.142.139-.142.59v3.883a1.255 1.255 0 0 1-1.256 1.256h-1.777a1.255 1.255 0 0 1-1.256-1.256V15.69l-.032.057a4.8 4.8 0 0 1-1.86 1.833 5.04 5.04 0 0 1-2.484.634 4.5 4.5 0 0 1-1.935-.424 1.25 1.25 0 0 1-.764.258h-1.71a1.255 1.255 0 0 1-1.256-1.255V7.687a2.4 2.4 0 0 1-.428.625c.253.23.412.561.412.93v7.553a1.255 1.255 0 0 1-1.256 1.255h-1.843a1.25 1.25 0 0 1-.894-.373c-.228.23-.544.373-.894.373H51.32a1.255 1.255 0 0 1-1.256-1.255v-1.251l-.061.117a4.7 4.7 0 0 1-1.782 1.884 4.77 4.77 0 0 1-2.485.67 5.6 5.6 0 0 1-1.485-.188l.009 2.764a1.255 1.255 0 0 1-1.255 1.259h-1.729a1.255 1.255 0 0 1-1.255-1.255v-3.537a1.255 1.255 0 0 1-1.167.793h-1.679a1.25 1.25 0 0 1-.77-.263 4.5 4.5 0 0 1-1.945.429c-.885 0-1.724-.21-2.495-.632l-.017-.01a5 5 0 0 1-1.081-.836 1.255 1.255 0 0 1-1.254 1.312h-1.81a1.255 1.255 0 0 1-1.228-.99l-.782-3.625-2.044 3.939a1.25 1.25 0 0 1-1.115.676h-.098a1.25 1.25 0 0 1-1.116-.68l-2.061-3.994zM35.92 16.63l.207-.114.223-.15q.493-.356.735-.785l.061-.118.033 1.332h1.678V9.242h-1.694l-.033 1.267q-.133-.329-.526-.658l-.032-.028a3.2 3.2 0 0 0-.668-.428l-.27-.12a3.3 3.3 0 0 0-1.235-.23q-1.136-.001-1.974.493a3.36 3.36 0 0 0-1.3 1.382q-.445.89-.444 2.074 0 1.2.51 2.107a3.8 3.8 0 0 0 1.382 1.381 3.9 3.9 0 0 0 1.893.477q.795 0 1.455-.33zm-2.789-5.38q-.576.675-.575 1.762 0 1.102.559 1.794.576.675 1.645.675a2.25 2.25 0 0 0 .934-.19 2.2 2.2 0 0 0 .468-.29l.178-.161a2.2 2.2 0 0 0 .397-.561q.244-.5.244-1.15v-.115q0-.708-.296-1.267l-.043-.077a2.2 2.2 0 0 0-.633-.709l-.13-.086-.047-.028a2.1 2.1 0 0 0-1.073-.285q-1.052 0-1.629.692zm2.316 2.706c.163-.17.28-.407.28-.83v-.114c0-.292-.06-.508-.15-.68a.96.96 0 0 0-.353-.389.85.85 0 0 0-.464-.127c-.4 0-.56.114-.664.239l-.01.012c-.148.174-.275.45-.275.945 0 .506.122.801.27.99.097.11.266.224.68.224.303 0 .504-.09.687-.269zm7.545 1.705a2.6 2.6 0 0 0 .331.423q.319.33.755.548l.173.074q.65.255 1.49.255 1.02 0 1.844-.493a3.45 3.45 0 0 0 1.316-1.4q.493-.904.493-2.089 0-1.909-.988-2.913-.988-1.02-2.584-1.02-.898 0-1.575.347a3 3 0 0 0-.415.262l-.199.166a3.4 3.4 0 0 0-.64.82V9.242h-1.712v11.553h1.729l-.017-5.134zm.53-1.138q.206.29.48.5l.155.11.053.034q.51.296 1.119.297 1.07 0 1.645-.675.577-.69.576-1.762 0-1.119-.576-1.777-.558-.675-1.645-.675-.435 0-.835.16a2 2 0 0 0-.284.136 2 2 0 0 0-.363.254 2.2 2.2 0 0 0-.46.569l-.082.162a2.6 2.6 0 0 0-.213 1.072v.115q0 .707.296 1.267l.135.211zm.964-.818a1.1 1.1 0 0 0 .367.385.94.94 0 0 0 .476.118c.423 0 .59-.117.687-.23.159-.194.28-.478.28-.95 0-.53-.133-.8-.266-.952l-.021-.025c-.078-.094-.231-.221-.68-.221a1 1 0 0 0-.503.135l-.012.007a.86.86 0 0 0-.335.343c-.073.133-.132.324-.132.614v.115a1.4 1.4 0 0 0 .14.66zm15.7-6.222q.347-.346.346-.856a1.05 1.05 0 0 0-.345-.79 1.18 1.18 0 0 0-.84-.329q-.51 0-.855.33a1.05 1.05 0 0 0-.346.79q0 .51.346.855.345.346.856.346.51 0 .839-.346zm4.337 9.314.033-1.332q.191.403.59.747l.098.081a4 4 0 0 0 .316.224l.223.122a3.2 3.2 0 0 0 1.44.322 3.8 3.8 0 0 0 1.875-.477 3.5 3.5 0 0 0 1.382-1.366q.527-.89.526-2.09 0-1.184-.444-2.073a3.24 3.24 0 0 0-1.283-1.399q-.823-.51-1.942-.51a3.5 3.5 0 0 0-1.527.344l-.086.043-.165.09a3 3 0 0 0-.33.214q-.432.315-.656.707a2 2 0 0 0-.099.198l.082-1.283V4.701h-1.744v12.095zm.473-2.509a2.5 2.5 0 0 0 .566.7q.117.098.245.18l.144.08a2.1 2.1 0 0 0 .975.232q1.07 0 1.645-.675.576-.69.576-1.778 0-1.102-.576-1.777-.56-.691-1.645-.692a2.2 2.2 0 0 0-1.015.235q-.22.113-.415.282l-.15.142a2.1 2.1 0 0 0-.42.594q-.223.479-.223 1.1v.115q0 .705.293 1.26zm2.616-.293c.157-.191.28-.479.28-.967 0-.51-.13-.79-.276-.961l-.021-.026c-.082-.1-.232-.225-.67-.225a.87.87 0 0 0-.681.279l-.012.011c-.154.155-.274.38-.274.807v.115c0 .285.057.499.144.669a1.1 1.1 0 0 0 .367.405c.137.082.28.123.455.123.423 0 .59-.118.686-.23zm8.266-3.013q.345-.13.724-.14l.069-.002q.493 0 .642.099l.247-1.794q-.196-.099-.717-.099a2.3 2.3 0 0 0-.545.063 2 2 0 0 0-.411.148 2.2 2.2 0 0 0-.4.249 2.5 2.5 0 0 0-.485.499 2.7 2.7 0 0 0-.32.581l-.05.137v-1.48h-1.778v7.553h1.777v-3.884q0-.546.159-.943a1.5 1.5 0 0 1 .466-.636 2.5 2.5 0 0 1 .399-.253 2 2 0 0 1 .224-.099zm9.784 2.656.05-.922q0-1.743-.856-2.698-.838-.97-2.584-.97-1.119-.001-2.007.493a3.46 3.46 0 0 0-1.4 1.382q-.493.906-.493 2.106 0 1.07.428 1.975.428.89 1.332 1.432.906.526 2.255.526.973 0 1.668-.185l.044-.012.135-.04q.613-.184.984-.421l-.542-1.267q-.3.162-.642.274l-.297.087q-.51.131-1.3.131-.954 0-1.497-.444a1.6 1.6 0 0 1-.192-.193q-.366-.44-.512-1.234l-.004-.021zm-5.427-1.256-.003.022h3.752v-.138q-.011-.727-.288-1.118a1 1 0 0 0-.156-.176q-.46-.428-1.316-.428-.986 0-1.494.604-.379.45-.494 1.234zm-27.053 2.77V4.7h-1.86v12.095h5.333V15.15zm7.103-5.908v7.553h-1.843V9.242h1.843z'/%3E%3Cpath fill='%23fff' d='m19.63 11.151-.757-1.71-.345 1.71-1.12 5.644h-1.827L18.083 4.7h.197l3.325 6.533.988 2.19.988-2.19L26.839 4.7h.181l2.6 12.095h-1.81l-1.218-5.644-.362-1.71-.658 1.71-2.93 5.644h-.098l-2.913-5.644zm14.836 5.81q-1.02 0-1.893-.478a3.8 3.8 0 0 1-1.381-1.382q-.51-.906-.51-2.106 0-1.185.444-2.074a3.36 3.36 0 0 1 1.3-1.382q.839-.494 1.974-.494a3.3 3.3 0 0 1 1.234.231 3.3 3.3 0 0 1 .97.575q.396.33.527.659l.033-1.267h1.694v7.553H37.18l-.033-1.332q-.279.593-1.02 1.053a3.17 3.17 0 0 1-1.662.444zm.296-1.482q.938 0 1.58-.642.642-.66.642-1.711v-.115q0-.708-.296-1.267a2.2 2.2 0 0 0-.807-.872 2.1 2.1 0 0 0-1.119-.313q-1.053 0-1.629.692-.575.675-.575 1.76 0 1.103.559 1.795.577.675 1.645.675zm6.521-6.237h1.711v1.4q.906-1.597 2.83-1.597 1.596 0 2.584 1.02.988 1.005.988 2.914 0 1.185-.493 2.09a3.46 3.46 0 0 1-1.316 1.399 3.5 3.5 0 0 1-1.844.493q-.954 0-1.662-.329a2.67 2.67 0 0 1-1.086-.97l.017 5.134h-1.728zm4.048 6.22q1.07 0 1.645-.674.577-.69.576-1.762 0-1.119-.576-1.777-.558-.675-1.645-.675-.592 0-1.12.296-.51.28-.822.823-.296.527-.296 1.234v.115q0 .708.296 1.267.313.543.823.855.51.296 1.119.297z'/%3E%3Cpath fill='%23e1e3e9' d='M51.325 4.7h1.86v10.45h3.473v1.646h-5.333zm7.12 4.542h1.843v7.553h-1.843zm.905-1.415a1.16 1.16 0 0 1-.856-.346 1.17 1.17 0 0 1-.346-.856 1.05 1.05 0 0 1 .346-.79q.346-.329.856-.329.494 0 .839.33a1.05 1.05 0 0 1 .345.79 1.16 1.16 0 0 1-.345.855q-.33.346-.84.346zm7.875 9.133a3.17 3.17 0 0 1-1.662-.444q-.723-.46-1.004-1.053l-.033 1.332h-1.71V4.701h1.743v4.657l-.082 1.283q.279-.658 1.086-1.119a3.5 3.5 0 0 1 1.778-.477q1.119 0 1.942.51a3.24 3.24 0 0 1 1.283 1.4q.445.888.444 2.072 0 1.201-.526 2.09a3.5 3.5 0 0 1-1.382 1.366 3.8 3.8 0 0 1-1.876.477zm-.296-1.481q1.069 0 1.645-.675.577-.69.577-1.778 0-1.102-.577-1.776-.56-.691-1.645-.692a2.12 2.12 0 0 0-1.58.659q-.642.641-.642 1.694v.115q0 .71.296 1.267a2.4 2.4 0 0 0 .807.872 2.1 2.1 0 0 0 1.119.313zm5.927-6.237h1.777v1.481q.263-.757.856-1.217a2.14 2.14 0 0 1 1.349-.46q.527 0 .724.098l-.247 1.794q-.149-.099-.642-.099-.774 0-1.416.494-.626.493-.626 1.58v3.883h-1.777V9.242zm9.534 7.718q-1.35 0-2.255-.526-.904-.543-1.332-1.432a4.6 4.6 0 0 1-.428-1.975q0-1.2.493-2.106a3.46 3.46 0 0 1 1.4-1.382q.889-.495 2.007-.494 1.744 0 2.584.97.855.956.856 2.7 0 .444-.05.92h-5.43q.18 1.005.708 1.45.542.443 1.497.443.79 0 1.3-.131a4 4 0 0 0 .938-.362l.542 1.267q-.411.263-1.119.46-.708.198-1.711.197zm1.596-4.558q.016-1.02-.444-1.432-.46-.428-1.316-.428-1.728 0-1.991 1.86z'/%3E%3Cpath d='M5.074 15.948a.484.657 0 0 0-.486.659v1.84a.484.657 0 0 0 .486.659h4.101a.484.657 0 0 0 .486-.659v-1.84a.484.657 0 0 0-.486-.659zm3.56 1.16H5.617v.838h3.017z' style='fill:%23fff;fill-rule:evenodd;stroke-width:1.03600001'/%3E%3Cg style='stroke-width:1.12603545'%3E%3Cpath d='M-9.408-1.416c-3.833-.025-7.056 2.912-7.08 6.615-.02 3.08 1.653 4.832 3.107 6.268.903.892 1.721 1.74 2.32 2.902l-.525-.004c-.543-.003-.992.304-1.24.639a1.87 1.87 0 0 0-.362 1.121l-.011 1.877c-.003.402.104.787.347 1.125.244.338.688.653 1.23.656l4.142.028c.542.003.99-.306 1.238-.641a1.87 1.87 0 0 0 .363-1.121l.012-1.875a1.87 1.87 0 0 0-.348-1.127c-.243-.338-.688-.653-1.23-.656l-.518-.004c.597-1.145 1.425-1.983 2.348-2.87 1.473-1.414 3.18-3.149 3.2-6.226-.016-3.59-2.923-6.684-6.993-6.707m-.006 1.1v.002c3.274.02 5.92 2.532 5.9 5.6-.017 2.706-1.39 4.026-2.863 5.44-1.034.994-2.118 2.033-2.814 3.633-.018.041-.052.055-.075.065q-.013.004-.02.01a.34.34 0 0 1-.226.084.34.34 0 0 1-.224-.086l-.092-.077c-.699-1.615-1.768-2.669-2.781-3.67-1.454-1.435-2.797-2.762-2.78-5.478.02-3.067 2.7-5.545 5.975-5.523m-.02 2.826c-1.62-.01-2.944 1.315-2.955 2.96-.01 1.646 1.295 2.988 2.916 2.999h.002c1.621.01 2.943-1.316 2.953-2.961.011-1.646-1.294-2.988-2.916-2.998m-.005 1.1c1.017.006 1.829.83 1.822 1.89s-.83 1.874-1.848 1.867c-1.018-.006-1.829-.83-1.822-1.89s.83-1.874 1.848-1.868m-2.155 11.857 4.14.025c.271.002.49.305.487.676l-.013 1.875c-.003.37-.224.67-.495.668l-4.14-.025c-.27-.002-.487-.306-.485-.676l.012-1.875c.003-.37.224-.67.494-.668' style='color:%23000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:%23000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;clip-rule:evenodd;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:%23000;solid-opacity:1;vector-effect:none;fill:%23000;fill-opacity:.4;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto' transform='translate(15.553 2.85)scale(.88807)'/%3E%3Cpath d='M-9.415-.316C-12.69-.338-15.37 2.14-15.39 5.207c-.017 2.716 1.326 4.041 2.78 5.477 1.013 1 2.081 2.055 2.78 3.67l.092.076a.34.34 0 0 0 .225.086.34.34 0 0 0 .227-.083l.019-.01c.022-.009.057-.024.074-.064.697-1.6 1.78-2.64 2.814-3.634 1.473-1.414 2.847-2.733 2.864-5.44.02-3.067-2.627-5.58-5.901-5.601m-.057 8.784c1.621.011 2.944-1.315 2.955-2.96.01-1.646-1.295-2.988-2.916-2.999-1.622-.01-2.945 1.315-2.955 2.96s1.295 2.989 2.916 3' style='clip-rule:evenodd;fill:%23e1e3e9;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:.4' transform='translate(15.553 2.85)scale(.88807)'/%3E%3Cpath d='M-11.594 15.465c-.27-.002-.492.297-.494.668l-.012 1.876c-.003.371.214.673.485.675l4.14.027c.271.002.492-.298.495-.668l.012-1.877c.003-.37-.215-.672-.485-.674z' style='clip-rule:evenodd;fill:%23fff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:2.47727823;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:.4' transform='translate(15.553 2.85)scale(.88807)'/%3E%3C/g%3E%3C/svg%3E")}}.maplibregl-ctrl.maplibregl-ctrl-attrib{background-color:hsla(0,0%,100%,.5);margin:0;padding:0 5px}@media screen{.maplibregl-ctrl-attrib.maplibregl-compact{background-color:#fff;border-radius:12px;box-sizing:content-box;color:#000;margin:10px;min-height:20px;padding:2px 24px 2px 0;position:relative}.maplibregl-ctrl-attrib.maplibregl-compact-show{padding:2px 28px 2px 8px;visibility:visible}.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.maplibregl-compact-show,.maplibregl-ctrl-top-left>.maplibregl-ctrl-attrib.maplibregl-compact-show{border-radius:12px;padding:2px 8px 2px 28px}.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-inner{display:none}.maplibregl-ctrl-attrib-button{background-color:hsla(0,0%,100%,.5);background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E");border:0;border-radius:12px;box-sizing:border-box;cursor:pointer;display:none;height:24px;outline:none;position:absolute;right:0;top:0;width:24px}.maplibregl-ctrl-attrib summary.maplibregl-ctrl-attrib-button{-webkit-appearance:none;-moz-appearance:none;appearance:none;list-style:none}.maplibregl-ctrl-attrib summary.maplibregl-ctrl-attrib-button::-webkit-details-marker{display:none}.maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib-button,.maplibregl-ctrl-top-left .maplibregl-ctrl-attrib-button{left:0}.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button,.maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-inner{display:block}.maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button{background-color:rgba(0,0,0,.05)}.maplibregl-ctrl-bottom-right>.maplibregl-ctrl-attrib.maplibregl-compact:after{bottom:0;right:0}.maplibregl-ctrl-top-right>.maplibregl-ctrl-attrib.maplibregl-compact:after{right:0;top:0}.maplibregl-ctrl-top-left>.maplibregl-ctrl-attrib.maplibregl-compact:after{left:0;top:0}.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.maplibregl-compact:after{bottom:0;left:0}}@media screen and (forced-colors:active){.maplibregl-ctrl-attrib.maplibregl-compact:after{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23fff' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E")}}@media screen and (forced-colors:active) and (prefers-color-scheme:light){.maplibregl-ctrl-attrib.maplibregl-compact:after{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E")}}.maplibregl-ctrl-attrib a{color:rgba(0,0,0,.75);text-decoration:none}.maplibregl-ctrl-attrib a:hover{color:inherit;text-decoration:underline}.maplibregl-attrib-empty{display:none}.maplibregl-ctrl-scale{background-color:hsla(0,0%,100%,.75);border:2px solid #333;border-top:#333;box-sizing:border-box;color:#333;font-size:10px;padding:0 5px;white-space:nowrap}.maplibregl-popup{display:flex;left:0;pointer-events:none;position:absolute;top:0;will-change:transform}.maplibregl-popup-anchor-top,.maplibregl-popup-anchor-top-left,.maplibregl-popup-anchor-top-right{flex-direction:column}.maplibregl-popup-anchor-bottom,.maplibregl-popup-anchor-bottom-left,.maplibregl-popup-anchor-bottom-right{flex-direction:column-reverse}.maplibregl-popup-anchor-left{flex-direction:row}.maplibregl-popup-anchor-right{flex-direction:row-reverse}.maplibregl-popup-tip{border:10px solid transparent;height:0;width:0;z-index:1}.maplibregl-popup-anchor-top .maplibregl-popup-tip{align-self:center;border-bottom-color:#fff;border-top:none}.maplibregl-popup-anchor-top-left .maplibregl-popup-tip{align-self:flex-start;border-bottom-color:#fff;border-left:none;border-top:none}.maplibregl-popup-anchor-top-right .maplibregl-popup-tip{align-self:flex-end;border-bottom-color:#fff;border-right:none;border-top:none}.maplibregl-popup-anchor-bottom .maplibregl-popup-tip{align-self:center;border-bottom:none;border-top-color:#fff}.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip{align-self:flex-start;border-bottom:none;border-left:none;border-top-color:#fff}.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip{align-self:flex-end;border-bottom:none;border-right:none;border-top-color:#fff}.maplibregl-popup-anchor-left .maplibregl-popup-tip{align-self:center;border-left:none;border-right-color:#fff}.maplibregl-popup-anchor-right .maplibregl-popup-tip{align-self:center;border-left-color:#fff;border-right:none}[dir=rtl] .maplibregl-popup-anchor-left{flex-direction:row-reverse}[dir=rtl] .maplibregl-popup-anchor-right{flex-direction:row}[dir=rtl] .maplibregl-popup-anchor-top-left .maplibregl-popup-tip{align-self:flex-end}[dir=rtl] .maplibregl-popup-anchor-top-right .maplibregl-popup-tip{align-self:flex-start}[dir=rtl] .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip{align-self:flex-end}[dir=rtl] .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip{align-self:flex-start}.maplibregl-popup-close-button{background-color:transparent;border:0;border-radius:0 3px 0 0;cursor:pointer;position:absolute;right:0;top:0}.maplibregl-popup-close-button:hover{background-color:rgba(0,0,0,.05)}.maplibregl-popup-content{background:#fff;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.1);padding:15px 10px;pointer-events:auto;position:relative}.maplibregl-popup-anchor-top-left .maplibregl-popup-content{border-top-left-radius:0}.maplibregl-popup-anchor-top-right .maplibregl-popup-content{border-top-right-radius:0}.maplibregl-popup-anchor-bottom-left .maplibregl-popup-content{border-bottom-left-radius:0}.maplibregl-popup-anchor-bottom-right .maplibregl-popup-content{border-bottom-right-radius:0}.maplibregl-popup-track-pointer{display:none}.maplibregl-popup-track-pointer *{pointer-events:none;-webkit-user-select:none;-moz-user-select:none;user-select:none}.maplibregl-map:hover .maplibregl-popup-track-pointer{display:flex}.maplibregl-map:active .maplibregl-popup-track-pointer{display:none}.maplibregl-marker{left:0;position:absolute;top:0;transition:opacity .2s;will-change:transform}.maplibregl-user-location-dot,.maplibregl-user-location-dot:before{background-color:#1da1f2;border-radius:50%;height:15px;width:15px}.maplibregl-user-location-dot:before{animation:maplibregl-user-location-dot-pulse 2s infinite;content:"";position:absolute}.maplibregl-user-location-dot:after{border:2px solid #fff;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.35);box-sizing:border-box;content:"";height:19px;left:-2px;position:absolute;top:-2px;width:19px}@media (prefers-reduced-motion:reduce){.maplibregl-user-location-dot:before{animation:none}}@keyframes maplibregl-user-location-dot-pulse{0%{opacity:1;transform:scale(1)}70%{opacity:0;transform:scale(3)}to{opacity:0;transform:scale(1)}}.maplibregl-user-location-dot-stale{background-color:#aaa}.maplibregl-user-location-dot-stale:after{display:none}.maplibregl-user-location-accuracy-circle{background-color:#1da1f233;border-radius:100%;height:1px;width:1px}.maplibregl-crosshair,.maplibregl-crosshair .maplibregl-interactive,.maplibregl-crosshair .maplibregl-interactive:active{cursor:crosshair}.maplibregl-boxzoom{background:#fff;border:2px dotted #202020;height:0;left:0;opacity:.5;position:absolute;top:0;width:0}.maplibregl-cooperative-gesture-screen{align-items:center;background:rgba(0,0,0,.4);color:#fff;display:flex;font-size:1.4em;inset:0;justify-content:center;line-height:1.2;opacity:0;padding:1rem;pointer-events:none;position:absolute;transition:opacity 1s ease 1s;z-index:99999}.maplibregl-cooperative-gesture-screen.maplibregl-show{opacity:1;transition:opacity .05s}.maplibregl-cooperative-gesture-screen .maplibregl-mobile-message{display:none}@media (hover:none),(pointer:coarse){.maplibregl-cooperative-gesture-screen .maplibregl-desktop-message{display:none}.maplibregl-cooperative-gesture-screen .maplibregl-mobile-message{display:block}}.maplibregl-pseudo-fullscreen{height:100%!important;left:0!important;position:fixed!important;top:0!important;width:100%!important;z-index:99999}
+</style>
+<style>
+html { height: 100%; box-sizing: border-box; }
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%; margin: 0; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--ground); color: var(--ink); font: 400 .9375rem/1.45 var(--f-ui);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke);
+  stroke-linejoin: var(--icon-join); stroke-linecap: var(--icon-cap); }
+
+/* ---------- prototype strip: direction switcher and theme ---------- */
+.proto {
+  flex: none; display: flex; align-items: center; gap: 12px; padding: 6px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--line); position: relative; z-index: 5;
+}
+.brand { display: none; align-items: baseline; gap: 10px; min-width: 0; }
+.brand b { font: 800 1.25rem/1 var(--f-display); letter-spacing: -0.01em; }
+.brand small { font-size: .75rem; color: var(--ink-2); white-space: nowrap; }
+.dirs { display: flex; flex: 1; gap: 4px; min-width: 0; }
+.dirs button {
+  flex: 1; min-height: 44px; min-width: 0; padding: 4px 6px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: .875rem;
+  border: var(--border) solid transparent; background: transparent; border-radius: var(--radius); color: var(--ink-2);
+}
+.dirs button b { font: 800 .8125rem/1 var(--f-ui); width: 22px; height: 22px; display: grid; place-items: center;
+  border: 1.5px solid currentColor; border-radius: var(--radius); flex: none; }
+.dirs button span { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dirs button[aria-checked="true"] { color: var(--ink); background: var(--surface-3); }
+.dirs button[aria-checked="true"] b { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.theme-btn {
+  flex: none; min-height: 44px; min-width: 44px; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  background: transparent; border: var(--border) solid var(--line); border-radius: var(--radius); color: var(--ink);
+}
+.theme-btn span { display: none; font-weight: 600; }
+
+/* ---------- stage: map and overlays ---------- */
+.stage { position: relative; flex: 1; min-height: 0; }
+#map { position: absolute; inset: 0; background: var(--ground); }
+.loading {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px;
+  color: var(--ink-2); background: var(--surface); z-index: 3;
+}
+.loading p { margin: 0; max-width: 32ch; }
+.loading strong { display: block; font: 700 1.25rem/1.2 var(--f-display); color: var(--ink); margin-bottom: 6px; }
+
+.panel { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.panel > * { pointer-events: auto; }
+.top { position: absolute; top: 12px; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.search { position: relative; }
+.search__box {
+  display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 6px 0 14px;
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
+  border: var(--border) solid var(--line); border-radius: var(--radius);
+}
+.search__box svg { color: var(--ink-2); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 12px 0; outline: none; font-size: 1rem; }
+.search input::placeholder { color: var(--ink-2); opacity: 1; }
+.search input::-webkit-search-cancel-button { display: none; }
+.search__clear { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink-2); border-radius: var(--radius); }
+.results {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); box-shadow: var(--shadow); border: var(--border) solid var(--line); border-radius: var(--radius);
+  max-height: min(50vh, 360px); overflow: auto; z-index: 4;
+}
+.results li { min-height: 44px; display: flex; align-items: center; padding: 8px 10px; border-radius: var(--radius); cursor: pointer; }
+.results li[aria-selected="true"], .results li:hover { background: var(--surface-3); }
+.results mark { background: none; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.results .empty { color: var(--ink-2); cursor: default; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; min-height: 44px; padding: 0 14px 0 10px; display: flex; align-items: center; gap: 8px;
+  background: var(--surface); color: var(--ink-2); box-shadow: var(--shadow); font-weight: 600; font-size: .875rem;
+  border: var(--border) solid var(--line); border-radius: var(--radius);
+}
+.chip .dot { width: 14px; height: 14px; border: 2px solid currentColor; border-radius: var(--radius); display: grid; place-items: center; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.chip[aria-pressed="true"] .dot::after { content: ""; width: 6px; height: 6px; background: currentColor; border-radius: var(--radius); }
+
+.fabs { position: absolute; right: 16px; bottom: 44px; display: flex; flex-direction: column; gap: 10px; z-index: 2; }
+.fab {
+  width: 48px; height: 48px; display: grid; place-items: center; background: var(--surface); color: var(--ink);
+  box-shadow: var(--shadow); border: var(--border) solid var(--line); border-radius: var(--radius);
+}
+.fab[aria-expanded="true"] { background: var(--ink); color: var(--surface); }
+.compass { width: 48px; height: 48px; display: grid; place-items: center; color: var(--ink-2); pointer-events: none; }
+.compass svg { width: 34px; height: 34px; }
+
+.attrib {
+  position: absolute; left: 16px; right: 76px; bottom: 10px; z-index: 1; font-size: .6875rem; line-height: 1.35;
+  color: var(--ink-2); pointer-events: none; display: flex; flex-wrap: wrap; gap: 0 8px;
+}
+.attrib span { background: color-mix(in srgb, var(--surface) 82%, transparent); padding: 2px 6px; border-radius: var(--radius); }
+.hint {
+  position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); z-index: 1; max-width: calc(100% - 140px);
+  background: var(--ink); color: var(--surface); padding: 8px 12px; font-size: .8125rem; font-weight: 600;
+  border-radius: var(--radius); box-shadow: var(--shadow); pointer-events: none; text-align: center;
+}
+
+/* ---------- sheet (details) ---------- */
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 62%; overflow: auto; overscroll-behavior: contain;
+  background: var(--surface); color: var(--ink); box-shadow: 0 -8px 30px rgb(0 0 0 / .18);
+  border: var(--border) solid var(--line); border-bottom: 0; border-radius: calc(var(--radius) * 1.6) calc(var(--radius) * 1.6) 0 0;
+  padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateY(0);
+  transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s;
+}
+.sheet[data-open="false"] { transform: translateY(105%); visibility: hidden; transition: transform .22s ease-in, visibility 0s .22s; }
+.sheet::before { content: ""; display: block; width: 40px; height: 4px; margin: 0 auto 8px; background: var(--line); border-radius: 2px; }
+.sheet__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.eyebrow { margin: 10px 0 0; font-size: var(--eyebrow-size); font-weight: 600; color: var(--ink-2);
+  text-transform: var(--eyebrow-case); letter-spacing: var(--eyebrow-track); text-wrap: balance; }
+.icon-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: var(--surface-2);
+  color: var(--ink); border-radius: var(--radius); }
+.verdict { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; font-weight: 700; font-size: 1rem; }
+.verdict svg { width: 28px; height: 28px; }
+.verdict--ok { color: var(--ok); } .verdict--semi { color: var(--semi); } .verdict--no { color: var(--no); }
+.verdict--nodata { color: var(--nodata); } .verdict--bay, .verdict--ped { color: var(--bay); }
+.big { margin: 6px 0 4px; font: var(--big-weight) var(--big)/1.02 var(--f-display); letter-spacing: var(--big-track);
+  text-transform: var(--big-case); font-variant-numeric: tabular-nums; text-wrap: balance; }
+.action { margin: 0 0 12px; font-size: 1.0625rem; font-weight: 500; max-width: 40ch; text-wrap: pretty; }
+.facts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.facts li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); min-height: 48px; }
+.facts li > span { flex: 1; min-width: 0; }
+.facts svg { color: var(--ink-2); }
+.facts .ref { font-size: .8125rem; color: var(--ink-2); }
+.go { flex: none; min-height: 44px; min-width: 64px; padding: 0 14px; border: 0; background: var(--accent); color: var(--accent-ink);
+  font-weight: 700; border-radius: var(--radius); }
+.foot { margin: 12px 0 0; font-size: .75rem; color: var(--ink-2); }
+.empty-state { display: none; }
+
+/* ---------- legend ---------- */
+.legend {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 78%; overflow: auto; z-index: 3;
+  background: var(--surface); color: var(--ink); box-shadow: 0 -8px 30px rgb(0 0 0 / .2);
+  border: var(--border) solid var(--line); border-bottom: 0; border-radius: calc(var(--radius) * 1.6) calc(var(--radius) * 1.6) 0 0;
+  padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.legend h2 { margin: 0; font: 700 1.25rem/1.2 var(--f-display); text-transform: var(--big-case); letter-spacing: var(--big-track); }
+.legend .dir-note { margin: 4px 0 12px; color: var(--ink-2); font-size: .875rem; max-width: 48ch; }
+.legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.legend li { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; padding: 6px 0; }
+.legend li svg { width: 56px; height: 20px; }
+.legend li b { display: block; font-weight: 700; font-size: .9375rem; }
+.legend li span { font-size: .8125rem; color: var(--ink-2); }
+.notice { margin: 14px 0 0; padding: 10px 12px; background: var(--surface-2); border-radius: var(--radius); font-weight: 700; }
+.legend .small { margin: 10px 0 0; font-size: .75rem; color: var(--ink-2); max-width: 60ch; }
+.legend__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+
+.toast {
+  position: absolute; left: 16px; right: 16px; top: 132px; z-index: 4; margin: 0 auto; max-width: 420px;
+  background: var(--ink); color: var(--surface); padding: 12px 14px; border-radius: var(--radius); box-shadow: var(--shadow);
+  font-weight: 600; font-size: .875rem; transition: opacity .2s;
+}
+.toast[hidden] { display: none; }
+
+/* ---------- direction A: chamfered corners, like the Cerda blocks ---------- */
+[data-dir="a"] .search__box, [data-dir="a"] .results, [data-dir="a"] .chip, [data-dir="a"] .fab, [data-dir="a"] .go,
+[data-dir="a"] .icon-btn, [data-dir="a"] .toast, [data-dir="a"] .hint, [data-dir="a"] .notice {
+  clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+}
+[data-dir="a"] .chip, [data-dir="a"] .icon-btn, [data-dir="a"] .go { --cut: 7px; }
+[data-dir="a"] .top, [data-dir="a"] .fabs { filter: drop-shadow(0 6px 14px rgb(40 32 16 / .18)); }
+[data-dir="a"] .search__box, [data-dir="a"] .chip, [data-dir="a"] .fab { box-shadow: none; }
+[data-dir="a"] .sheet, [data-dir="a"] .legend {
+  border-radius: 0; clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
+}
+[data-dir="a"] .dirs button[aria-checked="true"] b, [data-dir="a"] .dirs button b { border-radius: 0;
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px); }
+[data-dir="a"] .big { font-variation-settings: "opsz" 96; }
+
+/* ---------- direction B: instrument glass, amber backlight ---------- */
+[data-dir="b"] .search__box, [data-dir="b"] .chip, [data-dir="b"] .fab, [data-dir="b"] .sheet, [data-dir="b"] .legend, [data-dir="b"] .results {
+  background: color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+[data-dir="b"] .chip { text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+[data-dir="b"] .chip[aria-pressed="true"] { background: var(--surface); color: var(--accent); border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 0 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+[data-dir="b"] .fab[aria-expanded="true"] { background: var(--surface); color: var(--accent); border-color: var(--accent); }
+[data-dir="b"] .big { color: var(--ink); }
+[data-dir="b"] .verdict { text-transform: uppercase; letter-spacing: .08em; font-size: .8125rem; }
+[data-dir="b"] .verdict svg { filter: drop-shadow(0 0 6px currentColor); }
+[data-dir="b"] .dirs button[aria-checked="true"] { background: transparent; box-shadow: inset 0 -2px 0 var(--accent); }
+[data-dir="b"] .dirs button[aria-checked="true"] b { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+[data-dir="b"] .go { text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+[data-dir="b"] .legend h2 { text-transform: uppercase; letter-spacing: .06em; }
+
+/* ---------- direction C: sign plates, road paint ---------- */
+[data-dir="c"] .proto { border-bottom: 2px solid var(--line); }
+[data-dir="c"] .chip { text-transform: uppercase; letter-spacing: .04em; font-weight: 800; font-size: .8125rem; }
+[data-dir="c"] .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--line); }
+[data-dir="c"] .verdict { padding: 8px 14px 8px 8px; border-radius: var(--radius); border: 2px solid var(--line);
+  text-transform: uppercase; font: 800 1.125rem/1 var(--f-display); letter-spacing: .03em; }
+[data-dir="c"] .verdict--ok, [data-dir="c"] .verdict--semi, [data-dir="c"] .verdict--bay, [data-dir="c"] .verdict--ped {
+  background: var(--plate-ok); color: var(--plate-ok-ink); }
+[data-dir="c"] .verdict--no { background: var(--plate-no); color: var(--plate-ink); }
+[data-dir="c"] .verdict--nodata { background: var(--surface-3); color: var(--ink); }
+[data-dir="c"] .dirs button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--line); }
+[data-dir="c"] .dirs button[aria-checked="true"] b { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
+[data-dir="c"] .go { border: 2px solid var(--line); text-transform: uppercase; font-weight: 800; }
+[data-dir="c"] .legend h2, [data-dir="c"] .loading strong, [data-dir="c"] .brand b { text-transform: uppercase; letter-spacing: .02em; }
+[data-dir="c"] .brand b { font-size: 1.5rem; }
+[data-dir="c"] .notice { border: 2px solid var(--line); background: var(--plate-no); color: var(--plate-ink); }
+[data-dir="c"] .sheet::before { background: var(--ink); }
+
+@media (max-width: 899.98px) {
+  .stage:has(.sheet[data-open="true"]) .fabs, .stage:has(.sheet[data-open="true"]) .attrib { visibility: hidden; }
+}
+
+/* ---------- wide screens: left panel ---------- */
+@media (min-width: 600px) {
+  .brand { display: flex; }
+  .dirs { flex: none; margin-left: auto; }
+  .dirs button { flex: none; padding: 4px 14px; }
+  .theme-btn span { display: inline; }
+}
+@media (min-width: 900px) {
+  .panel { inset: 16px auto 16px 16px; width: 380px; display: flex; flex-direction: column; gap: 12px; }
+  .top { position: static; }
+  .sheet, .sheet[data-open="false"] { position: static; flex: 0 1 auto; min-height: 0; max-height: none; transform: none; visibility: visible;
+    border-radius: var(--radius); border-bottom: var(--border) solid var(--line); box-shadow: var(--shadow); transition: none; }
+  [data-dir="a"] .sheet { clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px); }
+  .sheet::before { display: none; }
+  .sheet[data-open="false"] > :not(.empty-state) { display: none; }
+  .sheet[data-open="false"] > .empty-state { display: block; }
+  .sheet .sheet__close { display: none; }
+  .legend { left: auto; right: 76px; bottom: 16px; width: 360px; max-height: calc(100% - 32px); border-radius: var(--radius); border-bottom: var(--border) solid var(--line); }
+  [data-dir="a"] .legend { clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px); }
+  .attrib { left: 412px; bottom: 12px; }
+  .toast { top: auto; bottom: 24px; left: 412px; right: 76px; }
+  .hint { display: none; }
+  .fabs { bottom: 16px; }
+}
+.empty-state h2 { margin: 6px 0 6px; font: 700 1.25rem/1.2 var(--f-display); text-transform: var(--big-case); }
+.empty-state p { margin: 0 0 8px; color: var(--ink-2); font-size: .875rem; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet[data-open="false"], .toast { transition: none; }
+}
+</style>
+
+<header class="proto">
+  <div class="brand"><b>MotoBCN</b><small>Prototipo · tres direcciones visuales</small></div>
+  <div class="dirs" role="radiogroup" aria-label="Dirección visual">
+    <button type="button" role="radio" data-dir="a" aria-checked="true"><b>A</b><span>Panot</span></button>
+    <button type="button" role="radio" data-dir="b" aria-checked="false"><b>B</b><span>Fanal</span></button>
+    <button type="button" role="radio" data-dir="c" aria-checked="false"><b>C</b><span>Pintura</span></button>
+  </div>
+  <button type="button" class="theme-btn" id="theme-btn" aria-label="Tema del sistema. Cambiar a claro"></button>
+</header>
+
+<main class="stage">
+  <div id="map" role="region" aria-label="Mapa de aparcamiento de motos en Eixample y Gràcia"></div>
+  <div class="loading" id="loading"><p><strong>Cargando el mapa</strong>Eixample y Gràcia, con cada tramo de acera.</p></div>
+
+  <div class="panel">
+    <div class="top">
+      <form class="search" role="search" id="search" autocomplete="off">
+        <label class="search__box" for="q">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+          <span class="sr">Buscar calle</span>
+          <input id="q" type="search" placeholder="Busca una calle" role="combobox" aria-autocomplete="list"
+            aria-expanded="false" aria-controls="results" enterkeyhint="search" spellcheck="false">
+          <button type="button" class="search__clear" id="q-clear" aria-label="Borrar búsqueda" hidden>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </label>
+        <ul class="results" id="results" role="listbox" aria-label="Calles" hidden></ul>
+      </form>
+      <div class="chips" role="group" aria-label="Capas">
+        <button type="button" class="chip" data-layer="motos" aria-pressed="true"><span class="dot" aria-hidden="true"></span>Zonas moto</button>
+        <button type="button" class="chip" data-layer="aceras" aria-pressed="true"><span class="dot" aria-hidden="true"></span>Aceras</button>
+        <button type="button" class="chip" data-layer="riesgo" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Riesgo de multa</button>
+      </div>
+    </div>
+    <section class="sheet" id="sheet" data-open="false" aria-live="polite" aria-label="Detalle">
+      <div class="empty-state">
+        <p class="eyebrow">Eixample y Gràcia</p>
+        <h2>Toca una acera o una zona moto</h2>
+        <p>Verás si puedes aparcar, cómo hacerlo y la zona moto más cercana.</p>
+      </div>
+      <div id="sheet-body"></div>
+    </section>
+  </div>
+
+  <div class="fabs">
+    <div class="compass" id="compass" aria-hidden="true"></div>
+    <button type="button" class="fab" id="locate" aria-label="Centrar el mapa">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+    </button>
+    <button type="button" class="fab" id="legend-btn" aria-label="Leyenda" aria-expanded="false" aria-controls="legend">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h3M10 6h10M4 12h3M10 12h10M4 18h3M10 18h10"/></svg>
+    </button>
+  </div>
+  <p class="attrib" id="attrib"><span>Font de les dades: Ajuntament de Barcelona</span><span>Prototipo</span></p>
+  <p class="hint" id="hint" hidden>Toca una acera para ver si puedes aparcar</p>
+  <section class="legend" id="legend" hidden aria-label="Leyenda"></section>
+  <p class="toast" id="toast" role="status" hidden></p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.js"></script>
+<script>
+"use strict";
+(() => {
+const root = document.documentElement;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (n, d = 1) => Number(n).toLocaleString("es-ES", { maximumFractionDigits: d });
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const darkScheme = matchMedia("(prefers-color-scheme: dark)");
+const wide = matchMedia("(min-width: 900px)");
+
+// ---------- state, kept per viewer ----------
+const DIRS = {
+  a: { name: "Panot", note: "El suelo de la ciudad a pleno sol: panot, piedra de fachada y plátanos. Las esquinas en chaflán vienen de las manzanas de Cerdà." },
+  b: { name: "Fanal", note: "Rodar de noche: la calle iluminada por sus farolas reales. Un cuadro de instrumentos con luz ámbar." },
+  c: { name: "Pintura", note: "La calle pintada: bordillo amarillo donde no se puede, plazas azules y MOTOS en blanco sobre el asfalto." },
+};
+const state = { dir: "a", theme: "system", layers: { motos: true, aceras: true, riesgo: false }, street: -1 };
+try {
+  const saved = JSON.parse(localStorage.getItem("motobcn-proto") || "{}");
+  if (DIRS[saved.dir]) state.dir = saved.dir;
+  if (["light", "dark", "system"].includes(saved.theme)) state.theme = saved.theme;
+  if (saved.layers) Object.assign(state.layers, saved.layers);
+} catch (e) { /* storage blocked: defaults */ }
+const hashDir = location.hash.slice(1).toLowerCase();
+if (DIRS[hashDir]) state.dir = hashDir;
+const save = () => { try { localStorage.setItem("motobcn-proto", JSON.stringify({ dir: state.dir, theme: state.theme, layers: state.layers })); } catch (e) {} };
+const resolvedTheme = () => (state.theme === "system" ? (darkScheme.matches ? "dark" : "light") : state.theme);
+function applyRootAttrs() {
+  root.dataset.dir = state.dir;
+  if (state.theme === "system") delete root.dataset.theme; else root.dataset.theme = state.theme;
+}
+applyRootAttrs();
+
+// ---------- icons ----------
+const svg = (body, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+const ICON = {
+  close: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
+  bay: svg('<circle cx="6" cy="16" r="3"/><circle cx="18" cy="16" r="3"/><path d="M6 16h4l3-6h3l2 6M13 10l-2-3H8"/>'),
+  fine: svg('<path d="M7 3h10v18l-2.5-1.6L12 21l-2.5-1.6L7 21z"/><path d="M10 8h4M10 12h4"/>'),
+  law: svg('<path d="M12 4v16M5 20h14M6 8h12M6 8l-3 6a3 3 0 0 0 6 0zM18 8l-3 6a3 3 0 0 0 6 0z"/>'),
+  sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+  moon: svg('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'),
+  auto: svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>'),
+};
+// Status icons differ per direction: A chamfered octagons, B indicator lamps, C traffic signs.
+function statusIcon(tone) {
+  const d = state.dir;
+  if (d === "a") {
+    const oct = '<path d="M8 2h8l6 6v8l-6 6H8l-6-6V8z"/>';
+    const mark = { ok: '<path d="M7.5 12.5l3 3 6-7"/>', semi: '<path d="M7 16l4-8M11.5 16l4-8M16 16l2-4"/>',
+      no: '<path d="M7 7l10 10"/>', nodata: '<path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/>',
+      bay: '<path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>', ped: '<circle cx="12" cy="6.5" r="1.5"/><path d="M12 9v5l-2.5 4M12 14l2.5 4M9 11.5h6"/>' }[tone];
+    return svg(oct + mark);
+  }
+  if (d === "b") {
+    const mark = { ok: '<path d="M8 12.5l2.5 2.5 5.5-6"/>', semi: '<path d="M8 16l3-8M12 16l3-8"/>', no: '<path d="M8 8l8 8M16 8l-8 8"/>',
+      nodata: '<path d="M12 8v5M12 16h.01"/>', bay: '<path d="M10 16V8h3a2.5 2.5 0 0 1 0 5h-3"/>', ped: '<path d="M12 7v10M8 11l4-4 4 4"/>' }[tone];
+    return svg('<circle cx="12" cy="12" r="9.5"/>' + mark);
+  }
+  // C: real sign shapes. Allowed: blue square with P. Prohibited: blue disc, red ring, red bar (R-308).
+  if (tone === "no") return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="#1D4FC4" stroke="#D0021B" stroke-width="3"/><path d="M5.5 5.5 18.5 18.5" stroke="#D0021B" stroke-width="3"/></svg>`;
+  if (tone === "nodata") return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="#FFFFFF" stroke="#111214" stroke-width="2"/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.7 2.4c-.8.4-1.2 1-1.2 1.9M12 17.3v.2" stroke="#111214" stroke-width="2.4" fill="none"/></svg>`;
+  if (tone === "ped") return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="#1D4FC4" stroke="#FFFFFF" stroke-width="1.6"/><circle cx="12" cy="6.4" r="1.7" fill="#FFFFFF"/><path d="M12 9v5l-2.6 4.2M12 14l2.6 4.2M8.8 11.4h6.4" stroke="#FFFFFF" stroke-width="2" fill="none"/></svg>`;
+  const txt = tone === "semi" ? '<path d="M15.5 16.5l3-6" stroke="#FFFFFF" stroke-width="2"/>' : "";
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="#1D4FC4" stroke="#FFFFFF" stroke-width="1.6"/><path d="M8.5 18V6h4.2a3.6 3.6 0 0 1 0 7.2H8.5" stroke="#FFFFFF" stroke-width="2.6" fill="none"/>${txt}</svg>`;
+}
+
+// ---------- map palettes: every colour of every style lives here ----------
+const PAL = {
+  a: {
+    light: {
+      bg: "#AEB3B6", walk: "#E8E3D9", tile: "#DCD5C8", curb: "#9A958C", plaza: "#ECE7DD", peat: "#E6DCC5", park: "#BCD0A0",
+      green: "#A6C189", water: "#A5C8D4", zebra: "#F7F6F2", block: "#D8C6A8", facade: "#B39C78", tree: "#5F8740", treeA: 0.28, pit: "#8C8069",
+      text: "#39342D", halo: "#EFEBE3", soft: "#6A6257", landmark: "#7A5728",
+      ok: "#1E8A4F", semi: "#0B6F8F", no: "#C9362C", nodata: "#8F8A82", bay: "#2344C4", bayEdge: "#FFFFFF", bayText: "#FFFFFF",
+      sel: "#16140F", selHalo: "#FFFFFF", street: "#2344C4",
+      heat: ["rgba(255,214,77,0.40)", "rgba(245,150,40,0.58)", "rgba(215,58,34,0.70)", "rgba(165,24,24,0.80)"],
+      mask: "#EFECE6", maskA: 0.93, edge: "#8F8A82", metro: "#39342D",
+    },
+    dark: {
+      bg: "#1B1E21", walk: "#2F2D29", tile: "#3A3732", curb: "#5A564F", plaza: "#33312C", peat: "#39342B", park: "#2F3D27",
+      green: "#34462A", water: "#22404A", zebra: "#CFCBC3", block: "#473E32", facade: "#63574A", tree: "#6E9A4E", treeA: 0.26, pit: "#1E1C19",
+      text: "#E6E0D5", halo: "#1B1E21", soft: "#A39A8C", landmark: "#D2AE72",
+      ok: "#4CC585", semi: "#3DB5DA", no: "#FF6B5E", nodata: "#7F7A71", bay: "#8398FF", bayEdge: "#1B1E21", bayText: "#0B1236",
+      sel: "#FFFFFF", selHalo: "#000000", street: "#8398FF",
+      heat: ["rgba(255,214,77,0.35)", "rgba(245,150,40,0.55)", "rgba(255,90,60,0.68)", "rgba(255,60,50,0.80)"],
+      mask: "#131416", maskA: 0.92, edge: "#6F6A62", metro: "#E6E0D5",
+    },
+  },
+  b: {
+    light: {
+      bg: "#BFC6D1", walk: "#DCE1E8", tile: "#D0D6DF", curb: "#98A2B1", plaza: "#E0E4EA", peat: "#E3E1DB", park: "#C3D3C4",
+      green: "#B2C8B6", water: "#A7BFD5", zebra: "#F3F5F8", block: "#A4ADBC", facade: "#8C96A7", tree: "#4F7560", treeA: 0.22, pit: "#8A93A2",
+      text: "#1F2A3D", halo: "#E6EAF0", soft: "#4F5B70", landmark: "#7A5A20", lamp: "#D98A00",
+      ok: "#0C8A56", semi: "#1F5FD0", no: "#D22B3A", nodata: "#7F8898", bay: "#B86E00", bayEdge: "#FFFFFF", bayText: "#FFFFFF",
+      sel: "#0E1420", selHalo: "#FFFFFF", street: "#1F5FD0",
+      heat: ["rgba(210,43,58,0.25)", "rgba(210,43,58,0.45)", "rgba(190,30,45,0.62)", "rgba(150,20,35,0.78)"],
+      mask: "#E3E7ED", maskA: 0.93, edge: "#8A93A5", metro: "#1F2A3D",
+    },
+    dark: {
+      bg: "#10141B", walk: "#1B2029", tile: "#202631", curb: "#2B3240", plaza: "#1D222C", peat: "#1F2229", park: "#121A15",
+      green: "#15211A", water: "#0E2130", zebra: "#7E8798", block: "#07090D", facade: "#1C2330", tree: "#2A4A36", treeA: 0.35, pit: "#0A0D12",
+      text: "#A9B2C2", halo: "#10141B", soft: "#6C778A", landmark: "#C9A56E", lamp: "#FFD9A0",
+      glow: ["rgba(255,170,60,0.0)", "rgba(255,170,60,0.10)", "rgba(255,186,95,0.22)", "rgba(255,210,140,0.36)"],
+      ok: "#3FD893", semi: "#56A8FF", no: "#FF5C6A", nodata: "#4E5666", bay: "#FFB020", bayEdge: "#10141B", bayText: "#1A1100",
+      sel: "#FFFFFF", selHalo: "#000000", street: "#FFB020",
+      heat: ["rgba(255,92,106,0.22)", "rgba(255,92,106,0.40)", "rgba(255,120,130,0.58)", "rgba(255,190,196,0.75)"],
+      mask: "#05070A", maskA: 0.9, edge: "#3A4456", metro: "#A9B2C2",
+    },
+  },
+  c: {
+    light: {
+      bg: "#5F6368", walk: "#D1CEC7", tile: "#C6C2BA", curb: "#F0EEE9", plaza: "#D8D4CD", peat: "#DCD2BC", park: "#9DB788",
+      green: "#8FAE79", water: "#8DB5CB", zebra: "#FFFFFF", block: "#F6F4F0", facade: "#1D1F22", tree: "#557A43", treeA: 0.30, pit: "#7C7568",
+      text: "#FFFFFF", halo: "#4A4E53", soft: "#5B5F65", landmark: "#1D1F22", blockText: "#1D1F22", blockHalo: "#F6F4F0",
+      ok: "#1D5FD1", semi: "#1D5FD1", tick: "#FFFFFF", no: "#FFC400", noCasing: "#2A2B2E", nodata: "#8C8F94", bay: "#1D5FD1", bayEdge: "#FFFFFF", bayText: "#FFFFFF",
+      sel: "#111214", selHalo: "#FFD000", street: "#FFD000",
+      heat: ["rgba(255,208,0,0.40)", "rgba(255,160,0,0.58)", "rgba(255,110,0,0.70)", "rgba(230,51,18,0.82)"],
+      mask: "#3B3E42", maskA: 0.9, edge: "#FFFFFF", metro: "#1D1F22",
+    },
+    dark: {
+      bg: "#131417", walk: "#2A2C30", tile: "#303236", curb: "#4A4D52", plaza: "#2E3034", peat: "#34312A", park: "#1F2A1C",
+      green: "#243322", water: "#15293A", zebra: "#E8E8E8", block: "#1E2023", facade: "#6A6E74", tree: "#4E7340", treeA: 0.30, pit: "#111214",
+      text: "#F2F2F2", halo: "#131417", soft: "#8A8E94", landmark: "#D0D3D8", blockText: "#D0D3D8", blockHalo: "#1E2023",
+      ok: "#4C8DFF", semi: "#4C8DFF", tick: "#131417", no: "#FFD000", noCasing: "#000000", nodata: "#6F737A", bay: "#4C8DFF", bayEdge: "#F2F2F2", bayText: "#FFFFFF",
+      sel: "#FFFFFF", selHalo: "#000000", street: "#FFD000",
+      heat: ["rgba(255,208,0,0.35)", "rgba(255,160,0,0.55)", "rgba(255,110,0,0.68)", "rgba(255,75,43,0.80)"],
+      mask: "#0B0C0E", maskA: 0.9, edge: "#F2F2F2", metro: "#F2F2F2",
+    },
+  },
+};
+
+// ---------- style building ----------
+// Widths in metres: MapLibre uses 512 px tiles, so one metre at zoom z is PPM0 * 2^z pixels here.
+const PPM0 = 512 / (40075016.686 * Math.cos(41.396 * Math.PI / 180));
+const px = (m, z) => +(m * PPM0 * 2 ** z).toFixed(2);
+const zx = (...s) => ["interpolate", ["exponential", 2], ["zoom"], ...s];
+const zl = (...s) => ["interpolate", ["linear"], ["zoom"], ...s];
+function metres(m, floor) { // real size at high zoom, never thinner than floor pixels
+  const z = Math.log2(floor / (m * PPM0));
+  if (z >= 19.9) return floor;
+  if (z <= 14) return zx(14, px(m, 14), 20, px(m, 20));
+  return zx(14, floor, +z.toFixed(2), floor, 20, px(m, 20));
+}
+const FONT = { r: ["noto-sans-regular"], m: ["noto-sans-medium"], i: ["noto-sans-italic"] };
+// Artifacts do not serve .pbf files, so the glyphs come from data/glyphs.json (base64, range 0-255 only).
+const GLYPHS = "glyphs://{fontstack}/{range}";
+let glyphData = null;
+maplibregl.addProtocol("glyphs", async (params) => {
+  glyphData ??= fetch("./data/glyphs.json").then((r) => r.json());
+  const [stack] = decodeURIComponent(params.url.slice(9)).split("/");
+  const b64 = (await glyphData)[stack.split(",")[0].trim()];
+  return { data: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer };
+});
+const sel = (on, off = 0) => ["case", ["boolean", ["feature-state", "sel"], false], on, off];
+
+function buildStyle(dir, theme, data) {
+  const sources = {};
+  for (const k of ["suelo", "manzanas", "pasos", "calles", "portales", "puntos", "motos", "motosPt", "multas", "aceras", "tramos", "mask", "area"]) {
+    sources[k] = { type: "geojson", data: data[k] };
+  }
+  return { version: 8, name: `MotoBCN ${dir.toUpperCase()} ${theme}`, glyphs: GLYPHS, sources, layers: buildLayers(dir, theme) };
+}
+
+function buildLayers(dir, theme) {
+  const P = PAL[dir][theme];
+  const L = [];
+  const vis = (group) => (state.layers[group] ? "visible" : "none");
+  const add = (layer, group) => {
+    if (group) { layer.metadata = { group }; layer.layout = { ...(layer.layout || {}), visibility: vis(group) }; }
+    L.push(layer);
+  };
+  const k = (v) => ["==", ["get", "k"], v];
+  const s = (...v) => ["in", ["get", "s"], ["literal", v]];
+
+  // Ground: the map background is the roadway, everything else sits on it.
+  add({ id: "bg", type: "background", paint: { "background-color": P.bg } });
+  add({ id: "suelo-i", type: "fill", source: "suelo", filter: k("i"), paint: { "fill-color": P.walk } });
+  if (dir === "a") {
+    add({ id: "panot", type: "fill", source: "suelo", filter: k("i"), minzoom: 17,
+      paint: { "fill-pattern": `panot-a-${theme}`, "fill-opacity": zl(17, 0, 18, 1) } });
+  }
+  add({ id: "suelo-p", type: "fill", source: "suelo", filter: k("p"), paint: { "fill-color": P.plaza } });
+  add({ id: "suelo-v", type: "fill", source: "suelo", filter: k("v"), paint: { "fill-color": P.peat } });
+  add({ id: "suelo-q", type: "fill", source: "suelo", filter: k("q"), paint: { "fill-color": P.park } });
+  add({ id: "suelo-g", type: "fill", source: "suelo", filter: k("g"), paint: { "fill-color": P.green } });
+  add({ id: "suelo-a", type: "fill", source: "suelo", filter: k("a"), paint: { "fill-color": P.water } });
+  add({ id: "pasos", type: "line", source: "pasos", minzoom: 15,
+    paint: { "line-color": P.zebra, "line-opacity": zl(15, 0, 16, 0.55, 17, 0.55, 17.4, 0),
+      "line-width": zx(15, ["*", ["get", "w"], px(1, 15)], 18, ["*", ["get", "w"], px(1, 18)]) } });
+  add({ id: "pasos-cebra", type: "line", source: "pasos", minzoom: 17,
+    paint: { "line-color": P.zebra, "line-opacity": zl(17, 0, 17.4, dir === "c" ? 1 : 0.9),
+      "line-width": zx(17, ["*", ["get", "w"], px(1, 17)], 20, ["*", ["get", "w"], px(1, 20)]),
+      "line-dasharray": [0.11, 0.11] } });
+  add({ id: "bordillo", type: "line", source: "suelo", filter: k("i"), minzoom: 15,
+    paint: { "line-color": P.curb, "line-width": zl(15, 0.4, 18, dir === "c" ? 1.4 : 1, 20, 2) } });
+  if (dir === "b" && theme === "dark") {
+    // Light pools from the 1:1000 street lamps, under the building masses.
+    add({ id: "farolas-luz", type: "heatmap", source: "puntos", filter: k("farola"),
+      paint: { "heatmap-radius": zx(14, 4, 17, px(11, 17), 20, px(11, 20)), "heatmap-intensity": zl(14, 0.5, 18, 0.8),
+        "heatmap-weight": 1, "heatmap-opacity": 1,
+        "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, P.glow[0], 0.25, P.glow[1], 0.6, P.glow[2], 1, P.glow[3]] } });
+  }
+  add({ id: "manzanas", type: "fill", source: "manzanas", paint: { "fill-color": P.block } });
+  add({ id: "fachada", type: "line", source: "manzanas", minzoom: dir === "c" ? 14 : 15.5,
+    paint: { "line-color": P.facade, "line-width": dir === "c" ? zl(14, 0.5, 17, 1, 20, 2.2) : zl(15.5, 0.3, 18, 0.8, 20, 1.5) } });
+  add({ id: "arboles", type: "circle", source: "puntos", filter: k("arbol"), minzoom: 16,
+    paint: { "circle-color": P.tree, "circle-opacity": zl(16, 0, 17, P.treeA), "circle-radius": metres(3.2, 1.5),
+      "circle-pitch-alignment": "map" } });
+  add({ id: "escocells", type: "circle", source: "puntos", filter: k("arbol"), minzoom: 17.5,
+    paint: { "circle-color": P.pit, "circle-opacity": zl(17.5, 0, 18.2, 0.85), "circle-radius": metres(0.55, 1) } });
+  if (dir === "b") {
+    add({ id: "farolas", type: "circle", source: "puntos", filter: k("farola"), minzoom: 16.5,
+      paint: { "circle-color": P.lamp, "circle-radius": zl(16.5, 0.8, 19, 2.2), "circle-opacity": zl(16.5, 0, 17.2, theme === "dark" ? 0.95 : 0.8) } });
+  }
+
+  // Fine risk: density of fines to motorcycles for sidewalk parking, Q4 2025.
+  add({ id: "riesgo", type: "heatmap", source: "multas",
+    paint: { "heatmap-weight": ["interpolate", ["linear"], ["get", "n"], 1, 0.35, 6, 0.8, 20, 1],
+      "heatmap-radius": zx(14, 9, 17, px(24, 17), 19.5, px(20, 19.5)), "heatmap-intensity": zl(14, 0.7, 18, 1.1), "heatmap-opacity": 0.85,
+      "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.15, P.heat[0], 0.45, P.heat[1], 0.75, P.heat[2], 1, P.heat[3]] } }, "riesgo");
+
+  // Sidewalk status. Lines run with the sidewalk on their right, so a positive offset moves them onto it.
+  statusLayers(dir, P).forEach((l) => add(l, "aceras"));
+  add({ id: "hl-street", type: "line", source: "aceras", filter: ["==", ["get", "n"], state.street],
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": P.street, "line-width": metres(1.6, 4), "line-offset": metres(0.9, 2), "line-blur": 1, "line-opacity": 0.55 } }, "aceras");
+
+  // Moto bays.
+  bayLayers(dir, theme, P).forEach((l) => add(l, "motos"));
+
+  // Selection (feature state), and invisible hit areas for taps.
+  add({ id: "sel-piece-halo", type: "line", source: "aceras", layout: { "line-cap": "round" },
+    paint: { "line-color": P.selHalo, "line-width": zx(14, 9, 17, 12, 20, px(2.2, 20) + 8), "line-offset": metres(0.9, 2), "line-opacity": sel(0.9) } });
+  add({ id: "sel-piece", type: "line", source: "aceras", layout: { "line-cap": "round" },
+    paint: { "line-color": P.sel, "line-width": zx(14, 4, 17, 6, 20, px(1.6, 20)), "line-offset": metres(0.9, 2), "line-opacity": sel(1) } });
+  add({ id: "sel-ping", type: "line", source: "aceras", layout: { "line-cap": "round" },
+    paint: { "line-color": P.sel, "line-width": 8, "line-offset": metres(0.9, 2), "line-opacity": 0 } });
+  add({ id: "sel-bay", type: "line", source: "motos", layout: { "line-cap": "round" },
+    paint: { "line-color": P.sel, "line-width": zx(14, 6, 17, 10, 20, px(3, 20)), "line-gap-width": zx(14, 3, 17, 5, 20, px(2.2, 20)), "line-opacity": sel(1) } });
+  add({ id: "aceras-hit", type: "line", source: "aceras", paint: { "line-color": "#000000", "line-opacity": 0, "line-width": 18, "line-offset": metres(1, 2) } }, "aceras");
+  add({ id: "motos-hit", type: "line", source: "motos", paint: { "line-color": "#000000", "line-opacity": 0, "line-width": 22 } }, "motos");
+
+  // Labels from the municipal toponymy, rotated like the official map.
+  const upper = dir !== "a";
+  const street = (id, z, minzoom, sizes, font) => add({ id, type: "symbol", source: "calles", minzoom, filter: ["==", ["get", "z"], z],
+    layout: { "text-field": ["get", "t"], "text-font": font, "text-size": zl(...sizes), "text-rotate": ["get", "r"],
+      "text-rotation-alignment": "map", "text-pitch-alignment": "viewport", "text-padding": 4, "text-max-width": 40,
+      "text-transform": upper ? "uppercase" : "none", "text-letter-spacing": dir === "c" ? 0.1 : dir === "b" ? 0.08 : 0.01 },
+    paint: { "text-color": P.text, "text-halo-color": P.halo, "text-halo-width": dir === "c" ? 1.6 : 1.4, "text-halo-blur": 0.3 } });
+  add({ id: "lbl-portal", type: "symbol", source: "portales", minzoom: 18.2,
+    layout: { "text-field": ["get", "t"], "text-font": FONT.r, "text-size": zl(18.2, 9.5, 20, 12), "text-rotate": ["get", "r"],
+      "text-rotation-alignment": "map", "text-padding": 1 },
+    paint: { "text-color": dir === "c" ? P.blockText : P.soft, "text-halo-color": dir === "c" ? P.blockHalo : P.block, "text-halo-width": 1.2,
+      "text-opacity": zl(18.2, 0, 18.6, 1) } });
+  add({ id: "lbl-landmark", type: "symbol", source: "calles", minzoom: 16.8, filter: ["==", ["get", "z"], 5],
+    layout: { "text-field": ["get", "t"], "text-font": FONT.i, "text-size": zl(16.8, 10.5, 19, 13), "text-rotate": ["get", "r"],
+      "text-rotation-alignment": "map", "text-max-width": 9, "text-line-height": 1.15, "text-padding": 3 },
+    paint: { "text-color": P.landmark, "text-halo-color": dir === "c" ? P.blockHalo : P.block, "text-halo-width": 1.4,
+      "text-opacity": zl(16.8, 0, 17.3, 1) } });
+  street("lbl-calle-0", 0, 16.4, [16.4, 10, 18, 12, 19.5, 14], FONT.r);
+  street("lbl-calle-1", 1, 15.3, [15.3, 10, 17, 12, 19.5, 15], FONT.m);
+  street("lbl-calle-2", 2, 14.4, [14.4, 10.5, 17, 13, 19.5, 16], FONT.m);
+  add({ id: "lbl-metro", type: "symbol", source: "calles", minzoom: 15.2, filter: ["==", ["get", "z"], 6],
+    layout: { "icon-image": `metro-${dir}-${theme}`, "icon-rotation-alignment": "viewport", "text-field": ["get", "t"], "text-font": FONT.m,
+      "text-size": zl(15.2, 10, 18, 12), "text-rotate": ["get", "r"], "text-rotation-alignment": "map", "text-anchor": "left",
+      "text-offset": [1.1, 0], "text-optional": true, "icon-padding": 2 },
+    paint: { "text-color": dir === "c" ? P.blockText : P.text, "text-halo-color": dir === "c" ? P.blockHalo : P.halo, "text-halo-width": 1.4 } });
+  add({ id: "lbl-barri", type: "symbol", source: "calles", minzoom: 14.2, maxzoom: 16.4, filter: ["==", ["get", "z"], 3],
+    layout: { "text-field": ["get", "t"], "text-font": dir === "b" ? FONT.m : FONT.i, "text-size": zl(14.2, 11, 16, 14), "text-rotate": ["get", "r"],
+      "text-rotation-alignment": "map", "text-max-width": 8, "text-transform": "uppercase", "text-letter-spacing": 0.18, "text-line-height": 1.25 },
+    paint: { "text-color": dir === "c" ? P.blockText : P.soft, "text-halo-color": dir === "c" ? P.blockHalo : P.halo, "text-halo-width": 1.6,
+      "text-opacity": zl(15.8, 1, 16.4, 0) } });
+  add({ id: "lbl-districte", type: "symbol", source: "calles", maxzoom: 15.2, filter: ["==", ["get", "z"], 4],
+    layout: { "text-field": ["get", "t"], "text-font": FONT.m, "text-size": zl(14, 13, 15, 16), "text-rotate": ["get", "r"],
+      "text-rotation-alignment": "map", "text-transform": "uppercase", "text-letter-spacing": 0.3 },
+    paint: { "text-color": dir === "c" ? P.blockText : P.text, "text-halo-color": dir === "c" ? P.blockHalo : P.halo, "text-halo-width": 2,
+      "text-opacity": zl(14.6, 1, 15.2, 0) } });
+
+  // Outside the demo area.
+  add({ id: "mask", type: "fill", source: "mask", paint: { "fill-color": P.mask, "fill-opacity": P.maskA } });
+  add({ id: "area-edge", type: "line", source: "area", paint: { "line-color": P.edge, "line-width": 1.2, "line-dasharray": [3, 2] } });
+  return L;
+}
+
+function statusLayers(dir, P) {
+  const s = (...v) => ["in", ["get", "s"], ["literal", v]];
+  const T = "tramos";
+  if (dir === "a") {
+    // Colour and form: parallel is a slim solid band, angled a wide band with ticks, prohibited dashed, no data dotted.
+    return [
+      { id: "st-nodata", type: "line", source: T, filter: s(5), layout: { "line-cap": "round" },
+        paint: { "line-color": P.nodata, "line-width": metres(0.3, 1.4), "line-offset": metres(0.5, 1), "line-dasharray": [0.1, 2.4] } },
+      { id: "st-prohibido", type: "line", source: T, filter: s(2, 3, 4),
+        paint: { "line-color": P.no, "line-width": metres(0.35, 1.6), "line-offset": metres(0.55, 1.2), "line-dasharray": [2.2, 1.3] } },
+      { id: "st-semi", type: "line", source: T, filter: s(1),
+        paint: { "line-color": P.semi, "line-width": metres(1.5, 2.6), "line-offset": metres(1.25, 1.6) } },
+      { id: "st-semi-marcas", type: "line", source: T, filter: s(1), minzoom: 16.6,
+        paint: { "line-color": P.walk, "line-width": metres(1.5, 2.6), "line-offset": metres(1.25, 1.6), "line-dasharray": [0.22, 0.6],
+          "line-opacity": zl(16.6, 0, 17.2, 0.9) } },
+      { id: "st-paralelo", type: "line", source: T, filter: s(0),
+        paint: { "line-color": P.ok, "line-width": metres(0.8, 2), "line-offset": metres(0.9, 1.4) } },
+    ];
+  }
+  if (dir === "b") {
+    // Light, not ink: allowed lines glow, angled ones as a double line, prohibited dashed and dim.
+    return [
+      { id: "st-nodata", type: "line", source: T, filter: s(5), layout: { "line-cap": "round" },
+        paint: { "line-color": P.nodata, "line-width": zl(14, 1.2, 18, 2, 20, 3), "line-offset": metres(0.6, 1.2), "line-dasharray": [0.1, 2.6] } },
+      { id: "st-prohibido", type: "line", source: T, filter: s(2, 3, 4),
+        paint: { "line-color": P.no, "line-width": zl(14, 1.2, 18, 2, 20, 3), "line-offset": metres(0.6, 1.2), "line-dasharray": [1.6, 1.6], "line-opacity": 0.9 } },
+      { id: "st-brillo", type: "line", source: T, filter: s(0, 1), layout: { "line-cap": "round" },
+        paint: { "line-color": ["match", ["get", "s"], 0, P.ok, P.semi], "line-width": zl(14, 5, 17, 9, 20, 18), "line-blur": zl(14, 3, 17, 6, 20, 10),
+          "line-offset": metres(1, 1.8), "line-opacity": 0.38 } },
+      { id: "st-semi", type: "line", source: T, filter: s(1),
+        paint: { "line-color": P.semi, "line-width": zl(14, 1, 18, 1.6, 20, 2.4), "line-gap-width": metres(0.9, 1.6), "line-offset": metres(1.25, 1.8) } },
+      { id: "st-paralelo", type: "line", source: T, filter: s(0), layout: { "line-cap": "round" },
+        paint: { "line-color": P.ok, "line-width": zl(14, 1.6, 18, 3, 20, 4.5), "line-offset": metres(0.9, 1.6) } },
+    ];
+  }
+  // C: road markings. Prohibited is the yellow broken line painted on the curb; allowed is a blue bay band.
+  return [
+    { id: "st-nodata", type: "line", source: T, filter: s(5), layout: { "line-cap": "round" },
+      paint: { "line-color": P.nodata, "line-width": metres(0.3, 1.5), "line-offset": metres(0.6, 1.2), "line-dasharray": [0.1, 2.2] } },
+    { id: "st-prohibido-borde", type: "line", source: T, filter: s(2, 3, 4),
+      paint: { "line-color": P.noCasing, "line-width": metres(0.5, 3.4), "line-offset": metres(0.2, 1.2) } },
+    { id: "st-prohibido", type: "line", source: T, filter: s(2, 3, 4),
+      paint: { "line-color": P.no, "line-width": metres(0.32, 2), "line-offset": metres(0.2, 1.2), "line-dasharray": [2.4, 1.2] } },
+    { id: "st-semi-borde", type: "line", source: T, filter: s(1),
+      paint: { "line-color": P.bayEdge, "line-width": metres(1.7, 4), "line-offset": metres(1.25, 1.8) } },
+    { id: "st-paralelo-borde", type: "line", source: T, filter: s(0),
+      paint: { "line-color": P.bayEdge, "line-width": metres(1, 3.4), "line-offset": metres(0.9, 1.6) } },
+    { id: "st-semi", type: "line", source: T, filter: s(1),
+      paint: { "line-color": P.semi, "line-width": metres(1.5, 2.6), "line-offset": metres(1.25, 1.8) } },
+    { id: "st-semi-marcas", type: "line", source: T, filter: s(1), minzoom: 16.6,
+      paint: { "line-color": P.tick, "line-width": metres(1.5, 2.6), "line-offset": metres(1.25, 1.8), "line-dasharray": [0.16, 0.5],
+        "line-opacity": zl(16.6, 0, 17.2, 1) } },
+    { id: "st-paralelo", type: "line", source: T, filter: s(0),
+      paint: { "line-color": P.ok, "line-width": metres(0.8, 2), "line-offset": metres(0.9, 1.6) } },
+  ];
+}
+
+function bayLayers(dir, theme, P) {
+  const L = [
+    { id: "motos-borde", type: "line", source: "motos", layout: { "line-cap": "butt" },
+      paint: { "line-color": P.bayEdge, "line-width": zx(14, 4, 17, 7.5, 20, px(2.4, 20) + 5) } },
+    { id: "motos", type: "line", source: "motos", layout: { "line-cap": "butt" },
+      paint: { "line-color": P.bay, "line-width": zx(14, 2.4, 17, 5, 20, px(2.2, 20)) } },
+  ];
+  if (dir === "b") {
+    L.unshift({ id: "motos-brillo", type: "line", source: "motos", layout: { "line-cap": "round" },
+      paint: { "line-color": P.bay, "line-width": zl(14, 8, 17, 16, 20, 34), "line-blur": zl(14, 5, 17, 10, 20, 16), "line-opacity": theme === "dark" ? 0.45 : 0.3 } });
+  }
+  if (dir === "c") {
+    // The word painted on the asphalt, as in the real bays.
+    L.push({ id: "motos-pintura", type: "symbol", source: "motos", minzoom: 18,
+      layout: { "symbol-placement": "line", "text-field": "MOTOS", "text-font": FONT.m, "text-size": zx(18, 8, 20, 22),
+        "text-letter-spacing": 0.12, "text-keep-upright": true, "symbol-spacing": 120, "text-rotation-alignment": "map", "text-padding": 0 },
+      paint: { "text-color": "#FFFFFF", "text-opacity": zl(18, 0, 18.4, 1) } });
+  }
+  L.push({ id: "motos-placas", type: "symbol", source: "motosPt", minzoom: 16,
+    layout: { "icon-image": `bay-${dir}-${theme}`, "icon-rotation-alignment": "viewport", "icon-padding": 1,
+      "text-field": ["to-string", ["coalesce", ["get", "p"], ""]], "text-font": FONT.m, "text-size": 11,
+      "text-rotation-alignment": "viewport", "symbol-sort-key": ["-", 0, ["coalesce", ["get", "p"], 0]] },
+    paint: { "text-color": P.bayText, "icon-opacity": zl(16, 0, 16.4, 1), "text-opacity": zl(16, 0, 16.4, 1) } });
+  return L;
+}
+
+// ---------- map images, drawn on demand ----------
+function makeImage(id) {
+  const [kind, dir, theme] = id.split("-");
+  const P = PAL[dir] && PAL[dir][theme];
+  if (!P) return null;
+  const r = 2;
+  const canvas = (w, h, draw) => {
+    const c = document.createElement("canvas"); c.width = w * r; c.height = h * r;
+    const g = c.getContext("2d"); g.scale(r, r); draw(g, w, h);
+    return { data: g.getImageData(0, 0, w * r, h * r), options: { pixelRatio: r } };
+  };
+  if (kind === "panot") {
+    // Hexagonal panot with a small flower: a texture, not a literal tile size.
+    return canvas(24, 42, (g) => {
+      g.fillStyle = P.walk; g.fillRect(0, 0, 24, 42);
+      g.strokeStyle = P.tile; g.lineWidth = 1;
+      const hex = (cx, cy) => { g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; g.lineTo(cx + 7 * Math.cos(a), cy + 7 * Math.sin(a)); } g.closePath(); g.stroke(); };
+      [[0, 0], [24, 0], [12, 21], [0, 42], [24, 42]].forEach(([x, y]) => hex(x, y));
+      g.fillStyle = P.tile;
+      [[0, 0], [24, 0], [12, 21], [0, 42], [24, 42]].forEach(([x, y]) => { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.beginPath(); g.arc(x + 2.2 * Math.cos(a), y + 2.2 * Math.sin(a), 1.2, 0, 7); g.fill(); } });
+    });
+  }
+  if (kind === "metro") {
+    return canvas(16, 16, (g) => {
+      g.fillStyle = P.metro; g.beginPath();
+      if (dir === "a") { g.moveTo(5, 0.5); g.lineTo(11, 0.5); g.lineTo(15.5, 5); g.lineTo(15.5, 11); g.lineTo(11, 15.5); g.lineTo(5, 15.5); g.lineTo(0.5, 11); g.lineTo(0.5, 5); }
+      else if (dir === "b") g.arc(8, 8, 7.5, 0, 7);
+      else g.roundRect(0.5, 0.5, 15, 15, 3);
+      g.fill();
+      g.fillStyle = dir === "c" ? "#FFFFFF" : P.halo; g.font = "700 10px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("M", 8, 8.6);
+    });
+  }
+  if (kind === "bay") {
+    if (dir === "a") return canvas(26, 26, (g) => { // chamfered block
+      const oct = (o) => { g.beginPath(); g.moveTo(7 + o, o); g.lineTo(19 - o, o); g.lineTo(26 - o, 7 + o); g.lineTo(26 - o, 19 - o); g.lineTo(19 - o, 26 - o); g.lineTo(7 + o, 26 - o); g.lineTo(o, 19 - o); g.lineTo(o, 7 + o); g.closePath(); };
+      oct(0); g.fillStyle = P.bayEdge; g.fill(); oct(2); g.fillStyle = P.bay; g.fill();
+    });
+    if (dir === "b") return canvas(30, 22, (g) => { // lit indicator
+      g.shadowColor = P.bay; g.shadowBlur = 6; g.fillStyle = P.bay; g.beginPath(); g.roundRect(3, 3, 24, 16, 8); g.fill();
+      g.shadowBlur = 0; g.strokeStyle = P.bayEdge; g.lineWidth = 1.5; g.stroke();
+    });
+    return canvas(26, 26, (g) => { // parking sign plate
+      g.fillStyle = P.bayEdge; g.beginPath(); g.roundRect(0.5, 0.5, 25, 25, 5); g.fill();
+      g.fillStyle = P.bay; g.beginPath(); g.roundRect(2.5, 2.5, 21, 21, 3.5); g.fill();
+    });
+  }
+  return null;
+}
+
+// ---------- data ----------
+const FILES = ["meta", "suelo", "manzanas", "pasos", "calles", "portales", "puntos", "motos", "multas", "aceras"];
+async function loadData() {
+  const out = {};
+  await Promise.all(FILES.map(async (n) => {
+    const res = await fetch(`./data/${n}.json`);
+    if (!res.ok) throw new Error(`data/${n}.json (${res.status})`);
+    out[n] = await res.json();
+  }));
+  out.tramos = buildRuns(out.aceras);
+  out.motosPt = bayPoints(out.motos);
+  const area = out.meta.area;
+  const ring = [...area, area[0]];
+  out.area = { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: ring } }] };
+  const lons = area.map((p) => p[0]), lats = area.map((p) => p[1]);
+  const pad = 0.04, w = Math.min(...lons) - pad, e = Math.max(...lons) + pad, s = Math.min(...lats) - pad, n = Math.max(...lats) + pad;
+  const outer = [[w, s], [e, s], [e, n], [w, n], [w, s]];
+  const signed = (r) => r.reduce((a, p, i) => { const q = r[(i + 1) % r.length]; return a + (p[0] * q[1] - q[0] * p[1]); }, 0);
+  const hole = Math.sign(signed(outer)) === Math.sign(signed(ring)) ? [...ring].reverse() : ring;
+  out.mask = { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [outer, hole] } }] };
+  return out;
+}
+// Consecutive pieces with the same status become one run, so dash patterns flow along the curb.
+function buildRuns(aceras) {
+  const runs = [];
+  let cur = null;
+  for (const f of aceras.features) {
+    const c = f.geometry.coordinates, s = f.properties.s;
+    const last = cur && cur.geometry.coordinates[cur.geometry.coordinates.length - 1];
+    if (cur && cur.properties.s === s && last[0] === c[0][0] && last[1] === c[0][1]) {
+      for (let i = 1; i < c.length; i++) cur.geometry.coordinates.push(c[i]);
+    } else {
+      cur = { type: "Feature", properties: { s }, geometry: { type: "LineString", coordinates: c.slice() } };
+      runs.push(cur);
+    }
+  }
+  return { type: "FeatureCollection", features: runs };
+}
+function bayPoints(motos) {
+  return { type: "FeatureCollection", features: motos.features.map((f) => ({ type: "Feature", id: f.id, properties: f.properties,
+    geometry: { type: "Point", coordinates: midpoint(f.geometry.coordinates) } })) };
+}
+// Local metric frame around the area: good to a few cm at this scale.
+const KX = 111320 * Math.cos(41.396 * Math.PI / 180), KY = 110540;
+const toXY = (p) => [p[0] * KX, p[1] * KY];
+function midpoint(coords) {
+  const pts = coords.map(toXY);
+  let total = 0; const seg = [];
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); total += d; }
+  let half = total / 2;
+  for (let i = 0; i < seg.length; i++) {
+    if (half <= seg[i] || i === seg.length - 1) { const t = seg[i] ? half / seg[i] : 0; return [coords[i][0] + (coords[i + 1][0] - coords[i][0]) * t, coords[i][1] + (coords[i + 1][1] - coords[i][1]) * t]; }
+    half -= seg[i];
+  }
+  return coords[0];
+}
+function distToLine(p, coords) { // metres from a lng/lat point to a line
+  const [x, y] = toXY(p);
+  let best = Infinity;
+  for (let i = 1; i < coords.length; i++) {
+    const [ax, ay] = toXY(coords[i - 1]), [bx, by] = toXY(coords[i]);
+    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+    const t = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0;
+    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+  }
+  return best;
+}
+function nearestBay(lngLat) {
+  let best = null;
+  for (const f of DATA.motos.features) {
+    const d = distToLine(lngLat, f.geometry.coordinates);
+    if (!best || d < best.d) best = { d, f };
+  }
+  return best;
+}
+
+// ---------- sheet content ----------
+const SIDE = ["lado montaña", "lado mar", "lado Besòs", "lado Llobregat"];
+const STATUS = [
+  { tone: "ok", title: "Puedes aparcar en paralelo", action: "Aparca en paralelo, a 50 cm del bordillo.", law: "art. 40.4.a y 40.4.d OCVV" },
+  { tone: "semi", title: "Puedes aparcar en semibatería", action: "Aparca en semibatería, a 50 cm del bordillo.", law: "art. 40.4.a y 40.4.e OCVV" },
+  { tone: "no", title: "No puedes aparcar", action: "Prohibido: solo se puede aparcar en aceras de más de 3 m.", law: "art. 40.4 OCVV" },
+  { tone: "no", title: "No puedes aparcar", action: "Prohibido: con la moto a 50 cm del bordillo no quedan 3 m libres para los peatones.", law: "art. 40.4.a y 40.4.h OCVV" },
+  { tone: "no", title: "No puedes aparcar", action: "Prohibido: a menos de 2 m de un paso de peatones.", law: "art. 40.4.b OCVV" },
+  { tone: "nodata", title: "Sin datos", action: "No hemos podido medir esta acera. Mira la señalización y deja siempre 3 m libres.", law: "art. 40.4.h OCVV" },
+];
+const BAY_KIND = { bateria: "En batería", linea: "En línea", chaflan: "En chaflán", otro: "Plazas reservadas" };
+const fineText = (f) => (f ? `${fmt(f, 0)} ${f === 1 ? "multa" : "multas"} a motos aquí en el último trimestre de 2025.` : "Ninguna multa a motos aquí en el último trimestre de 2025.");
+function bayRow(d, id) {
+  if (d == null || !isFinite(d) || d > 1500) return "";
+  const m = Math.max(5, Math.round(d / 5) * 5);
+  const text = m <= 100 ? `Zona moto a ${fmt(m, 0)} m: es la opción preferente.` : `Zona moto más cercana a ${fmt(m, 0)} m.`;
+  return `<li>${ICON.bay}<span>${text}</span><button type="button" class="go" data-bay="${id}">Ver</button></li>`;
+}
+function pieceHTML(p) {
+  const st = STATUS[p.s];
+  const street = p.n != null && DATA.meta.calles[p.n] ? DATA.meta.calles[p.n][0] : "Acera";
+  const width = p.w != null ? `Acera de ${fmt(p.w)} m` : p.k === 1 ? "Espacio peatonal abierto" : "Acera sin medir";
+  const T = DATA.meta.textos || {};
+  const why = (p.r || "").split("|").filter((c) => T[c]);
+  const tips = (p.o || "").split("|").filter((c) => T[c]);
+  const base = p.s === 5 && p.k === 1 ? "Más de 40 m de superficie peatonal, como una plaza o un chaflán ancho. Todavía no calculamos cómo aparcar aquí: mira la señalización." : why.length ? "Prohibido: " + T[why[0]][0] : st.action;
+  const action = [base, ...why.slice(1).map((c) => T[c][0]), ...tips.map((c) => T[c][0])].join(" ");
+  const law = why.length ? [...new Set(why.map((c) => T[c][1]))].join(" · ") + " OCVV" : st.law;
+  const where = [street, SIDE[p.l]].filter(Boolean).join(" · ");
+  return `<header class="sheet__head"><p class="eyebrow">${esc(where)}</p>
+      <button type="button" class="icon-btn sheet__close" aria-label="Cerrar">${ICON.close}</button></header>
+    <div class="verdict verdict--${st.tone}">${statusIcon(st.tone)}<span>${st.title}</span></div>
+    <h2 class="big">${width}</h2>
+    <p class="action">${action}</p>
+    <ul class="facts">${bayRow(p.b, p.bi)}<li>${ICON.fine}<span>${fineText(p.f || 0)}</span></li>
+      <li>${ICON.law}<span>${esc(law)}<br><span class="ref">Ordenanza de circulación de Barcelona</span></span></li></ul>
+    <p class="foot">Orientativo: manda la señalización.</p>`;
+}
+function bayHTML(f) {
+  const p = f.properties;
+  const street = p.n >= 0 && DATA.meta.calles[p.n] ? DATA.meta.calles[p.n][0] : "Zona moto";
+  const places = p.p ? `${fmt(p.p, 0)} ${p.p === 1 ? "plaza" : "plazas"}` : "Plazas sin contar";
+  return `<header class="sheet__head"><p class="eyebrow">${esc(street)}</p>
+      <button type="button" class="icon-btn sheet__close" aria-label="Cerrar">${ICON.close}</button></header>
+    <div class="verdict verdict--bay">${statusIcon("bay")}<span>Zona moto</span></div>
+    <h2 class="big">${places}</h2>
+    <p class="action">${BAY_KIND[p.e] || BAY_KIND.otro} · ${p.v ? "en la acera" : "en la calzada"}</p>
+    <ul class="facts"><li>${ICON.law}<span>Es la opción preferente: aparca aquí antes que en la acera.<br><span class="ref">art. 40.4 OCVV</span></span></li></ul>
+    <p class="foot">Inventario de reservas del Ajuntament, agosto de 2026.</p>`;
+}
+function pedestrianHTML(lngLat) {
+  const nb = nearestBay(lngLat);
+  return `<header class="sheet__head"><p class="eyebrow">Calle de prioridad peatonal</p>
+      <button type="button" class="icon-btn sheet__close" aria-label="Cerrar">${ICON.close}</button></header>
+    <div class="verdict verdict--ped">${statusIcon("ped")}<span>Solo en zonas moto</span></div>
+    <h2 class="big">Prioridad peatonal</h2>
+    <p class="action">Aquí no hay acera separada. Aparca solo en las zonas moto señalizadas.</p>
+    <ul class="facts">${nb ? bayRow(nb.d, nb.f.id) : ""}</ul>
+    <p class="foot">Orientativo: manda la señalización.</p>`;
+}
+
+// ---------- legend ----------
+function swatch(kind) {
+  const P = PAL[state.dir][resolvedTheme()];
+  const line = (c, w, dash = "", cap = "butt", y = 10, extra = "") => `<line x1="3" y1="${y}" x2="53" y2="${y}" stroke="${c}" stroke-width="${w}" stroke-dasharray="${dash}" stroke-linecap="${cap}" ${extra}/>`;
+  const base = `<rect x="0" y="0" width="56" height="20" fill="${P.walk}"/>`;
+  const d = state.dir;
+  let body = "";
+  if (kind === "ok") body = d === "b" ? line(P.ok, 10, "", "round", 10, 'opacity=".35"') + line(P.ok, 3) : d === "c" ? line(P.bayEdge, 8) + line(P.ok, 5) : line(P.ok, 5);
+  if (kind === "semi") body = d === "b" ? line(P.semi, 12, "", "round", 10, 'opacity=".35"') + line(P.semi, 1.6, "", "butt", 6.5) + line(P.semi, 1.6, "", "butt", 13.5)
+    : d === "c" ? line(P.bayEdge, 12) + line(P.semi, 9) + line(P.tick, 9, "2 6") : line(P.semi, 9) + line(P.walk, 9, "2 5.5");
+  if (kind === "no") body = d === "c" ? line(P.noCasing, 6) + line(P.no, 4, "9 4.5") : line(P.no, d === "b" ? 2.5 : 3, d === "b" ? "4 4" : "7 4");
+  if (kind === "nodata") body = line(P.nodata, 3, "0.1 7", "round");
+  if (kind === "bay") body = `<rect x="0" y="0" width="56" height="20" fill="${P.bg}"/>` + (d === "b" ? line(P.bay, 14, "", "round", 10, 'opacity=".4"') : "") + line(P.bayEdge, 11) + line(P.bay, 7.5)
+    + (d === "c" ? `<text x="28" y="12.6" font-size="7" font-weight="700" text-anchor="middle" fill="#FFFFFF" font-family="sans-serif" letter-spacing=".6">MOTOS</text>` : "");
+  if (kind === "ped") return `<svg viewBox="0 0 56 20" aria-hidden="true"><rect x="0" y="0" width="56" height="20" fill="${P.peat}" stroke="${P.curb}"/></svg>`;
+  if (kind === "risk") return `<svg viewBox="0 0 56 20" aria-hidden="true"><defs><linearGradient id="lg-risk"><stop offset="0" stop-color="${P.heat[0]}"/><stop offset=".5" stop-color="${P.heat[2]}"/><stop offset="1" stop-color="${P.heat[3]}"/></linearGradient></defs><rect x="0" y="0" width="56" height="20" fill="${P.bg}"/><rect x="0" y="0" width="56" height="20" fill="url(#lg-risk)"/></svg>`;
+  return `<svg viewBox="0 0 56 20" aria-hidden="true">${base}${body}</svg>`;
+}
+function renderLegend() {
+  const n = DATA ? DATA.lamps : 0;
+  const items = [
+    ["ok", "Aparca en paralelo", "Aceras de 4,3 a 6 m"],
+    ["semi", "Aparca en semibatería", "Aceras de más de 6 m"],
+    ["no", "Prohibido", "Acera de 4,3 m o menos (no quedan 3 m libres) o a menos de 2 m de un paso de peatones"],
+    ["nodata", "Sin datos", "Espacio abierto o anchura dudosa"],
+    ["bay", "Zona moto", "Plazas reservadas, en calzada o acera"],
+    ["ped", "Prioridad peatonal", "Solo en zonas moto señalizadas"],
+    ["risk", "Riesgo de multa", "Multas a motos por aparcar mal, octubre a diciembre de 2025"],
+  ];
+  $("#legend").innerHTML = `<div class="legend__head"><div><h2>Leyenda</h2>
+      <p class="dir-note">${state.dir.toUpperCase()} · ${DIRS[state.dir].name}. ${DIRS[state.dir].note}${state.dir === "b" && n ? ` ${fmt(n, 0)} farolas en la zona.` : ""}</p></div>
+      <button type="button" class="icon-btn" id="legend-close" aria-label="Cerrar leyenda">${ICON.close}</button></div>
+    <ul>${items.map(([k, t, d]) => `<li>${swatch(k)}<div><b>${t}</b><span>${d}</span></div></li>`).join("")}</ul>
+    <p class="notice">Orientativo: manda la señalización.</p>
+    <p class="small">Prototipo: la anchura de cada tramo está medida sobre la cartografía 1:1000 y el estado aplica el art. 40 de la ordenanza. Las señales se sitúan de forma aproximada. No hay datos de vados ni de contenedores.</p>
+    <p class="small">Montaña arriba, mar abajo: el mapa gira 45° para que la cuadrícula del Eixample quede recta. La flecha N marca el norte.</p>
+    <p class="small">Font de les dades: Ajuntament de Barcelona. Cartografía topográfica 1:1000 (julio de 2026), Mapa Topogràfic Municipal (agosto de 2026), inventario de reservas de aparcamiento (agosto de 2026) y multas de tráfico (octubre a diciembre de 2025).</p>`;
+  $("#legend-close").onclick = () => toggleLegend(false);
+}
+
+// ---------- UI ----------
+let DATA = null, map = null, selected = null, ping = 0, toastTimer = 0;
+const sheet = $("#sheet"), sheetBody = $("#sheet-body");
+function toast(text) {
+  const t = $("#toast"); t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4200);
+}
+function renderChrome() {
+  document.querySelectorAll(".dirs button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.dir === state.dir)));
+  const next = { system: "light", light: "dark", dark: "system" }[state.theme];
+  const label = { system: "Sistema", light: "Claro", dark: "Oscuro" };
+  const btn = $("#theme-btn");
+  btn.innerHTML = (state.theme === "system" ? ICON.auto : state.theme === "light" ? ICON.sun : ICON.moon) + `<span>${label[state.theme]}</span>`;
+  btn.setAttribute("aria-label", `Tema: ${label[state.theme].toLowerCase()}. Cambiar a ${label[next].toLowerCase()}`);
+  document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(!!state.layers[c.dataset.layer])));
+  $("#compass").innerHTML = `<svg viewBox="0 0 34 34" style="transform: rotate(${-(DATA ? DATA.meta.bearing : -44.8)}deg)"><circle cx="17" cy="17" r="15.5" fill="none" stroke="currentColor" stroke-width="1" opacity=".5"/><path d="M17 5l4 11h-8z" fill="currentColor"/><text x="17" y="27" text-anchor="middle" font-size="8" font-weight="700" fill="currentColor" font-family="sans-serif">N</text></svg>`;
+  if (DATA && !$("#legend").hidden) renderLegend();
+}
+function applyMapStyle() {
+  if (!map) return;
+  const layers = buildLayers(state.dir, resolvedTheme());
+  for (const id of map.getLayersOrder()) map.removeLayer(id);
+  for (const l of layers) map.addLayer(l);
+  if (selected) map.setFeatureState(selected, { sel: true });
+}
+function setDir(dir) {
+  if (dir === state.dir) return;
+  state.dir = dir; applyRootAttrs(); save(); renderChrome(); applyMapStyle();
+  if (selected) reopenSelection();
+  if (location.hash.slice(1) !== dir) history.replaceState(null, "", "#" + dir);
+}
+function cycleTheme() {
+  state.theme = { system: "light", light: "dark", dark: "system" }[state.theme];
+  applyRootAttrs(); save(); renderChrome(); applyMapStyle();
+  if (selected) reopenSelection();
+}
+darkScheme.addEventListener("change", () => { if (state.theme === "system") { renderChrome(); applyMapStyle(); if (selected) reopenSelection(); } });
+
+function openSheet(html) {
+  sheetBody.innerHTML = html;
+  sheet.dataset.open = "true";
+  $("#hint").hidden = true;
+  const close = sheet.querySelector(".sheet__close");
+  if (close) close.onclick = () => clearSelection();
+  sheet.querySelectorAll("[data-bay]").forEach((b) => { b.onclick = () => goBay(+b.dataset.bay); });
+  sheet.scrollTop = 0;
+}
+function closeSheet() { sheet.dataset.open = "false"; sheetBody.innerHTML = ""; }
+function clearSelection() {
+  if (selected) map.setFeatureState(selected, { sel: false });
+  selected = null; cancelAnimationFrame(ping); closeSheet();
+}
+function reopenSelection() {
+  if (!selected) return;
+  if (selected.source === "aceras") openSheet(pieceHTML(DATA.aceras.features[selected.id].properties));
+  else if (selected.source === "motos") openSheet(bayHTML(DATA.motos.features[selected.id]));
+}
+function select(source, id) {
+  if (selected) map.setFeatureState(selected, { sel: false });
+  selected = { source, id };
+  map.setFeatureState(selected, { sel: true });
+  reopenSelection();
+  pingSelection(source);
+}
+// The one orchestrated moment: the camera settles on the place and the selection rings out once.
+function pingSelection(source) {
+  cancelAnimationFrame(ping);
+  if (source !== "aceras" || reduceMotion.matches || !map.getLayer("sel-ping")) return;
+  const t0 = performance.now(), dur = 950;
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - (1 - k) ** 3;
+    if (!map.getLayer("sel-ping")) return;
+    map.setPaintProperty("sel-ping", "line-width", 6 + 34 * e);
+    map.setPaintProperty("sel-ping", "line-opacity", sel(+(0.6 * (1 - e)).toFixed(3)));
+    if (k < 1) ping = requestAnimationFrame(step);
+  };
+  ping = requestAnimationFrame(step);
+}
+function sheetCover() { // pixels of map hidden under the bottom sheet
+  return wide.matches ? 0 : sheet.dataset.open === "true" ? sheet.offsetHeight : 0;
+}
+function reveal(lngLat, zoom) {
+  const cover = sheetCover();
+  const pt = map.project(lngLat), h = map.getContainer().clientHeight;
+  const needs = zoom || pt.y > h - cover - 32 || pt.y < 140;
+  if (!needs) return;
+  map.easeTo({ center: lngLat, zoom: zoom || map.getZoom(), offset: [0, -cover / 2 + 40], duration: reduceMotion.matches ? 0 : 700 });
+}
+function goBay(id) {
+  const f = DATA.motos.features[id];
+  if (!f) return;
+  const c = midpoint(f.geometry.coordinates);
+  select("motos", id);
+  requestAnimationFrame(() => reveal(c, Math.max(map.getZoom(), 17.6)));
+}
+function nearestFeature(features, point) {
+  let best = null;
+  for (const f of features) {
+    const g = f.geometry, lines = g.type === "LineString" ? [g.coordinates] : g.type === "MultiLineString" ? g.coordinates : [];
+    for (const line of lines) {
+      for (let i = 1; i < line.length; i++) {
+        const a = map.project(line[i - 1]), b = map.project(line[i]);
+        const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy;
+        const t = L2 ? Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / L2)) : 0;
+        const d = Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy);
+        if (!best || d < best.d) best = { d, f };
+      }
+    }
+  }
+  return best && best.f;
+}
+function onMapClick(e) {
+  const box = [[e.point.x - 12, e.point.y - 12], [e.point.x + 12, e.point.y + 12]];
+  const layers = ["motos-hit", "aceras-hit", "suelo-v"].filter((id) => map.getLayer(id) && map.getLayoutProperty(id, "visibility") !== "none");
+  const found = map.queryRenderedFeatures(box, { layers });
+  const bay = nearestFeature(found.filter((f) => f.layer.id === "motos-hit"), e.point);
+  if (bay) { select("motos", bay.id); reveal(e.lngLat); return; }
+  const piece = nearestFeature(found.filter((f) => f.layer.id === "aceras-hit"), e.point);
+  if (piece) { select("aceras", piece.id); reveal(e.lngLat); return; }
+  if (found.some((f) => f.layer.id === "suelo-v")) {
+    if (selected) map.setFeatureState(selected, { sel: false });
+    selected = null; openSheet(pedestrianHTML([e.lngLat.lng, e.lngLat.lat])); reveal(e.lngLat); return;
+  }
+  clearSelection();
+}
+
+// ---------- search ----------
+const fold = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+let STREETS = [], activeIndex = -1, shown = [];
+function searchStreets(q) {
+  const k = fold(q.trim());
+  if (k.length < 2) return [];
+  return STREETS.filter((s) => s.key.includes(k))
+    .sort((a, b) => (a.key.indexOf(k) - b.key.indexOf(k)) || a.name.length - b.name.length).slice(0, 8);
+}
+function highlight(name, q) {
+  const k = fold(q.trim()), i = fold(name).indexOf(k);
+  if (i < 0 || !k) return esc(name);
+  return esc(name.slice(0, i)) + "<mark>" + esc(name.slice(i, i + k.length)) + "</mark>" + esc(name.slice(i + k.length));
+}
+function renderResults() {
+  const q = $("#q").value, list = $("#results");
+  $("#q-clear").hidden = !q;
+  shown = searchStreets(q);
+  if (!q.trim() || q.trim().length < 2) { list.hidden = true; $("#q").setAttribute("aria-expanded", "false"); return; }
+  list.innerHTML = shown.length
+    ? shown.map((s, i) => `<li role="option" id="opt-${i}" aria-selected="${i === activeIndex}" data-i="${s.i}">${highlight(s.name, q)}</li>`).join("")
+    : `<li class="empty" role="option" aria-disabled="true">Ninguna calle de Eixample o Gràcia se llama así</li>`;
+  list.hidden = false;
+  $("#q").setAttribute("aria-expanded", "true");
+  $("#q").setAttribute("aria-activedescendant", activeIndex >= 0 ? `opt-${activeIndex}` : "");
+}
+function goStreet(i) {
+  const s = STREETS[i];
+  if (!s) return;
+  $("#q").value = s.name; $("#q-clear").hidden = false;
+  $("#results").hidden = true; $("#q").setAttribute("aria-expanded", "false"); activeIndex = -1;
+  $("#q").blur();
+  state.street = s.i;
+  if (map.getLayer("hl-street")) map.setFilter("hl-street", ["==", ["get", "n"], s.i]);
+  const [w, so, e, n] = s.bbox, pad = 0.0009;
+  const cover = wide.matches ? 0 : 0;
+  map.fitBounds([[w - pad, so - pad], [e + pad, n + pad]], { bearing: DATA.meta.bearing, maxZoom: 17.4,
+    padding: { top: wide.matches ? 60 : 150, bottom: 60 + cover, left: 40, right: 40 }, duration: reduceMotion.matches ? 0 : 1600, essential: true });
+  map.once("moveend", () => pulseStreet());
+}
+function pulseStreet() {
+  if (!map.getLayer("hl-street")) return;
+  if (reduceMotion.matches) { map.setPaintProperty("hl-street", "line-opacity", 0.55); return; }
+  const t0 = performance.now(), dur = 1400;
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur);
+    const o = k < 0.3 ? k / 0.3 : 1 - 0.45 * ((k - 0.3) / 0.7);
+    if (map.getLayer("hl-street")) map.setPaintProperty("hl-street", "line-opacity", +o.toFixed(3));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function clearStreet() {
+  $("#q").value = ""; $("#q-clear").hidden = true; state.street = -1; renderResults();
+  if (map.getLayer("hl-street")) map.setFilter("hl-street", ["==", ["get", "n"], -1]);
+}
+
+function toggleLegend(force) {
+  const lg = $("#legend"), open = force ?? lg.hidden;
+  if (open) renderLegend();
+  lg.hidden = !open;
+  $("#legend-btn").setAttribute("aria-expanded", String(open));
+  if (open) $("#legend-close").focus();
+}
+
+function wireUI() {
+  document.querySelectorAll(".dirs button").forEach((b) => { b.onclick = () => setDir(b.dataset.dir); });
+  $(".dirs").addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    const order = ["a", "b", "c"], i = order.indexOf(state.dir);
+    const next = order[(i + (e.key === "ArrowRight" ? 1 : 2)) % 3];
+    setDir(next); document.querySelector(`.dirs button[data-dir="${next}"]`).focus(); e.preventDefault();
+  });
+  $("#theme-btn").onclick = cycleTheme;
+  document.querySelectorAll(".chip").forEach((c) => {
+    c.onclick = () => {
+      const g = c.dataset.layer;
+      state.layers[g] = !state.layers[g]; save(); renderChrome();
+      for (const id of map.getLayersOrder()) {
+        const l = map.getLayer(id);
+        if (l.metadata && l.metadata.group === g) map.setLayoutProperty(id, "visibility", state.layers[g] ? "visible" : "none");
+      }
+      if (!state.layers[g] && selected && ((g === "aceras" && selected.source === "aceras") || (g === "motos" && selected.source === "motos"))) clearSelection();
+    };
+  });
+  $("#locate").onclick = () => {
+    toast("La ubicación está desactivada en el prototipo. Te llevamos al centro de la zona de prueba.");
+    map.flyTo({ center: DATA.meta.center, zoom: 16.2, bearing: DATA.meta.bearing, duration: reduceMotion.matches ? 0 : 1400, essential: true });
+  };
+  $("#legend-btn").onclick = () => toggleLegend();
+  const q = $("#q");
+  q.addEventListener("input", () => { activeIndex = -1; renderResults(); });
+  q.addEventListener("focus", renderResults);
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!shown.length) return;
+      activeIndex = (activeIndex + (e.key === "ArrowDown" ? 1 : shown.length - 1) + (activeIndex < 0 && e.key === "ArrowUp" ? 1 : 0)) % shown.length;
+      renderResults(); e.preventDefault();
+    } else if (e.key === "Escape") { $("#results").hidden = true; q.setAttribute("aria-expanded", "false"); }
+  });
+  $("#search").addEventListener("submit", (e) => { e.preventDefault(); const s = shown[Math.max(0, activeIndex)]; if (s) goStreet(s.i); });
+  $("#results").addEventListener("pointerdown", (e) => { const li = e.target.closest("li[data-i]"); if (li) { e.preventDefault(); goStreet(+li.dataset.i); } });
+  q.addEventListener("blur", () => setTimeout(() => { $("#results").hidden = true; q.setAttribute("aria-expanded", "false"); }, 120));
+  $("#q-clear").onclick = () => { clearStreet(); q.focus(); };
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!$("#legend").hidden) { toggleLegend(false); $("#legend-btn").focus(); }
+    else if (sheet.dataset.open === "true") clearSelection();
+  });
+  wide.addEventListener("change", setPadding);
+}
+function setPadding() { if (map) map.setPadding({ left: wide.matches ? 412 : 0, top: 0, right: 0, bottom: 0 }); }
+
+// ---------- start ----------
+renderChrome();
+wireUI();
+loadData().then((data) => {
+  DATA = data;
+  DATA.lamps = (data.puntos.features.find((f) => f.properties.k === "farola") || { geometry: { coordinates: [] } }).geometry.coordinates.length;
+  STREETS = data.meta.calles.map(([name, bbox], i) => ({ i, name, bbox, key: fold(name) }));
+  renderChrome();
+  const lons = data.meta.area.map((p) => p[0]), lats = data.meta.area.map((p) => p[1]);
+  const m = 0.004;
+  map = new maplibregl.Map({
+    container: "map", style: buildStyle(state.dir, resolvedTheme(), data),
+    center: data.meta.start, zoom: wide.matches ? 16.7 : 16.1, bearing: data.meta.bearing,
+    minZoom: 14, maxZoom: 19.5, maxBounds: [[Math.min(...lons) - m, Math.min(...lats) - m], [Math.max(...lons) + m, Math.max(...lats) + m]],
+    dragRotate: false, pitchWithRotate: false, touchPitch: false, attributionControl: false, renderWorldCopies: false,
+    fadeDuration: reduceMotion.matches ? 0 : 200,
+  });
+  map.touchZoomRotate.disableRotation();
+  map.keyboard.disableRotation();
+  setPadding();
+  map.on("styleimagemissing", (e) => { const img = makeImage(e.id); if (img && !map.hasImage(e.id)) map.addImage(e.id, img.data, img.options); });
+  map.on("click", onMapClick);
+  map.on("mousemove", (e) => {
+    const layers = ["motos-hit", "aceras-hit"].filter((id) => map.getLayer(id) && map.getLayoutProperty(id, "visibility") !== "none");
+    const hit = map.queryRenderedFeatures([[e.point.x - 6, e.point.y - 6], [e.point.x + 6, e.point.y + 6]], { layers }).length;
+    map.getCanvas().style.cursor = hit ? "pointer" : "";
+  });
+  map.once("idle", () => {
+    $("#loading").hidden = true;
+    if (!wide.matches) { $("#hint").hidden = false; setTimeout(() => { $("#hint").hidden = true; }, 6000); }
+    root.dataset.ready = "1";
+  });
+}).catch((err) => {
+  $("#loading").innerHTML = `<p><strong>No se ha podido cargar el mapa</strong>Falta ${esc(err.message)}. Comprueba la conexión y recarga la página.</p>`;
+});
+})();
+</script>
