@@ -1,11 +1,12 @@
 name: Build and deploy
 
-# The data comes from open sources that change every month, so a monthly run keeps the map current.
+# CartoBCN stops large downloads from GitHub runners, so the map data is built locally and published
+# as assets of the "datos" release. See README.md.
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: "0 4 2 * *"
+  release:
+    types: [published, edited]
   workflow_dispatch:
 
 permissions:
@@ -23,14 +24,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y tippecanoe
-      - uses: astral-sh/setup-uv@v6
-      - name: Build map data
-        working-directory: pipeline
+      - name: Get map data
         env:
-          TMB_APP_ID: ${{ secrets.TMB_APP_ID }}
-          TMB_APP_KEY: ${{ secrets.TMB_APP_KEY }}
-        run: uv run python build.py
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download datos --dir web/public/data
       - uses: actions/setup-node@v4
         with:
           node-version: 22

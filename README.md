@@ -26,4 +26,9 @@ Requiere `uv` y `tippecanoe`.
 
 ## Publicación
 
-`.github/workflows/deploy.yml` genera los datos, compila la web y la publica en GitHub Pages en cada push a `main` y una vez al mes. Las claves de TMB son secretos del repositorio.
+`.github/workflows/deploy.yml` compila la web y la publica en GitHub Pages en cada push a `main`. Los datos del mapa salen de la release `datos`, porque CartoBCN corta las descargas grandes desde GitHub. Para actualizar los datos:
+
+    cd pipeline
+    uv run --env-file .env python build.py
+    gh release upload datos ../data/out/motobcn.pmtiles ../data/out/meta.json --clobber
+    gh workflow run deploy.yml
