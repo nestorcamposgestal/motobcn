@@ -1,7 +1,7 @@
 name: Build and deploy
 
 # CartoBCN stops large downloads from GitHub runners, so the map data is built locally and published
-# as assets of the "datos" release. See README.md.
+# as assets of the "data" release. See README.md.
 on:
   push:
     branches: [main]
@@ -27,7 +27,7 @@ jobs:
       - name: Get map data
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release download datos --dir web/public/data
+        run: gh release download data --dir web/public/data
       - uses: actions/setup-node@v4
         with:
           node-version: 22
