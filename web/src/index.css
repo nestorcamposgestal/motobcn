@@ -81,6 +81,7 @@
     border-radius: var(--radius-sm); background: var(--st); color: var(--on-st); white-space: nowrap; }
   .t-ok { --st: var(--st-ok); } .t-semi { --st: var(--st-semi); } .t-no, .t-prob { --st: var(--st-no); } .t-bay { --st: var(--st-bay); }
   .tag.t-nodata { color: var(--on-st-nodata); }
+  .tag.t-moto { background: var(--mar); color: var(--sobre-mar); }
   .tag.t-prob { background: transparent; color: var(--tinta); border: 2px dashed var(--st-no); padding: 2px 8px 2px 5px; }
   .tag.t-prob svg { color: var(--st-no); }
 
@@ -95,18 +96,14 @@
     border-radius: var(--radius-md); background: var(--pedra-50); color: var(--tinta); text-align: left; font: 600 15px/1.3 var(--font-sans); }
   .linkrow .dato { margin-left: auto; color: var(--tinta); }
 
-  /* Locate: the one octagonal control, cut like an Eixample block. */
-  .locate { width: 56px; height: 56px; padding: 0; border: 0; background: none; color: var(--mar); display: grid; place-items: center;
-    filter: drop-shadow(0 3px 6px var(--drop)); }
-  .locate > * { grid-area: 1 / 1; }
-  .locate polygon { fill: var(--pedra-100); stroke: var(--linia); stroke-width: 1.5; }
-  .locate:focus-visible { outline: none; }
-  .locate:focus-visible polygon { stroke: var(--focus); stroke-width: 3.5; }
-
   /* User position per Mapa.md: 8 px dot in mar, pedra-100 ring, 28 px halo in mar at 16 %. */
   .me { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; pointer-events: none;
     background: color-mix(in srgb, var(--mar) 16%, transparent); }
   .me::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--mar); box-shadow: 0 0 0 2.5px var(--pedra-100); }
+
+  /* The saved moto: a disc in mar, ringed like the user position so it reads on any ground. */
+  .moto-pin { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; pointer-events: none;
+    background: var(--mar); color: var(--sobre-mar); box-shadow: 0 0 0 2.5px var(--pedra-100), var(--shadow-float); }
 
   .sheet { position: absolute; z-index: 30; left: 0; right: 0; bottom: 0; max-height: 76%; display: flex; flex-direction: column;
     background: var(--pedra-100); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-sheet);

@@ -86,8 +86,13 @@ function buildLayers({ theme, filter, risk, selPiece, selBay }: StyleState) {
   add({ id: "verde-parque", type: "fill", filter: k("parque", "bosque"), paint: { "fill-color": P.park } }, "verde");
   add({ id: "verde-parterre", type: "fill", filter: k("parterre"), paint: { "fill-color": P.green } }, "verde");
   add({ id: "suelo-agua", type: "fill", filter: k("agua"), paint: { "fill-color": P.water } }, "suelo");
-  // ponytail: crossings are polygons now, so a flat tint stands in for the prototype's zebra dashes.
-  add({ id: "pasos", type: "fill", minzoom: 15, paint: { "fill-color": P.zebra, "fill-opacity": zl(15, 0, 16, 0.55, 18, 0.8) } }, "pasos");
+  // Crossings are axes with their band width w: a pale band far out, stripes of about half a metre up close.
+  // Dash units are line widths, so 0.125 of a 4 m band is one 0.5 m stripe.
+  const band = zx(15, ["*", ["get", "w"], px(1, 15)], 20, ["*", ["get", "w"], px(1, 20)]);
+  add({ id: "pasos", type: "line", minzoom: 15,
+    paint: { "line-color": P.zebra, "line-width": band, "line-opacity": zl(15, 0, 16, 0.5, 17, 0.5, 17.6, 0) } }, "pasos");
+  add({ id: "pasos-cebra", type: "line", minzoom: 17,
+    paint: { "line-color": P.zebra, "line-width": band, "line-dasharray": [0.125, 0.125], "line-opacity": zl(17, 0, 17.6, 0.9) } }, "pasos");
   add({ id: "bordillo", type: "line", filter: k("acera"), minzoom: 15, paint: { "line-color": P.curb, "line-width": zl(15, 0.4, 18, 1, 20, 2) } }, "suelo");
   add({ id: "manzanas", type: "fill", paint: { "fill-color": P.block } }, "manzanas");
   add({ id: "fachada", type: "line", minzoom: 15.5, paint: { "line-color": P.facade, "line-width": zl(15.5, 0.3, 18, 0.8, 20, 1.5) } }, "manzanas");

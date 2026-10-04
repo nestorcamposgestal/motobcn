@@ -93,7 +93,8 @@ export function model(p: Place, meta: Meta | null): Model {
     bayM: typeof P.bay === "number" ? P.bay : null, fines: typeof P.mul === "number" ? P.mul : null, ll, go: allowed || s.tone === "nodata" };
 }
 
-export const dirURL = (ll: LngLat) => `https://www.google.com/maps/dir/?api=1&destination=${ll[1].toFixed(6)},${ll[0].toFixed(6)}`;
+export const dirURL = (ll: LngLat, mode?: "walking") =>
+  `https://www.google.com/maps/dir/?api=1&destination=${ll[1].toFixed(6)},${ll[0].toFixed(6)}${mode ? `&travelmode=${mode}` : ""}`;
 
 // Barcelona when meta.json gives no bounds: the municipal limit with a small margin.
 export const BCN_BOUNDS: [number, number, number, number] = [2.05, 41.31, 2.24, 41.48];

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { Map as MlMap, Marker, addProtocol, setWorkerUrl, type MapGeoJSONFeature, type PointLike } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { PMTiles, Protocol } from "pmtiles";
 import type { Feature, Geometry } from "geojson";
-import { Layers, MapPin } from "lucide-react";
+import { Layers, LocateFixed, MapPin, Motorbike } from "lucide-react";
 import { buildStyle, makeImage, type Filter, type Theme } from "./map/style.ts";
-import { dist, midpoint, rankNearby, type LngLat } from "./geo.ts";
-import { BCN_BOUNDS, BCN_CENTER, model, type Meta, type Place } from "./model.ts";
-import { Nearby, Sheet, type Card } from "./ui/parts.tsx";
+import { dist, distToLine, midpoint, rankNearby, type LngLat } from "./geo.ts";
+import { BCN_BOUNDS, BCN_CENTER, model, streetName, type Meta, type Place } from "./model.ts";
+import { Detail, Nearby, Panel, ParkedInfo, type Card, type Parked } from "./ui/parts.tsx";
 import { Search } from "./ui/Search.tsx";
 import { Legend, type ThemePref } from "./ui/Legend.tsx";
 import { Welcome } from "./ui/Welcome.tsx";
@@ -95,10 +96,13 @@ export default function App() {
   const [legend, setLegend] = useState(false);
   const [welcome, setWelcome] = useState(() => store.get("motobcn.welcome") !== "1");
   const [toast, setToast] = useState("");
+  const [parked, setParked] = useState<Parked | null>(() => { try { return JSON.parse(store.get("motobcn.parked") || "null"); } catch { return null; } });
+  const [showParked, setShowParked] = useState(false);
   const mapEl = useRef<HTMLDivElement>(null);
   const sheetEl = useRef<HTMLElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const marker = useRef<Marker | null>(null);
+  const motoEl = useMemo(() => Object.assign(document.createElement("div"), { className: "moto-pin" }), []);
 
   const bounds = useMemo(() => meta?.bounds ?? BCN_BOUNDS, [meta]);
   const hl = sel ?? near?.cards[active]?.o ?? null;
@@ -112,6 +116,7 @@ export default function App() {
     store.set("motobcn.theme", pref);
   }, [pref]);
   useEffect(() => store.set("motobcn.risk", risk ? "1" : "0"), [risk]);
+  useEffect(() => store.set("motobcn.parked", parked ? JSON.stringify(parked) : ""), [parked]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 4500);
@@ -197,6 +202,13 @@ export default function App() {
     marker.current.setLngLat(user).addTo(map);
   }, [user, ready]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !parked) return;
+    const m = new Marker({ element: motoEl }).setLngLat(parked.ll).addTo(map);
+    return () => { m.remove(); };
+  }, [parked, ready]);
+
   // Keep the place clear of the bottom sheet, which covers the lower part of the map on phones.
   const reveal = (ll: LngLat, zoom?: number) => {
     const map = mapRef.current;
@@ -210,6 +222,7 @@ export default function App() {
   };
   const select = (p: Place | null, zoom?: number) => {
     setSel(p);
+    setShowParked(false);
     if (p) { setLegend(false); reveal(midpoint(p.line), zoom); }
   };
 
@@ -233,7 +246,7 @@ export default function App() {
   };
   live.current = { styleState, near, filter, meta, select, nearby };
 
-  const locate = () => {
+  const withPosition = (ok: (ll: LngLat) => void) => {
     if (!("geolocation" in navigator) || !isSecureContext) {
       setToast("Este navegador no nos da tu ubicación. Busca una calle o mueve el mapa.");
       return;
@@ -246,14 +259,42 @@ export default function App() {
         return;
       }
       setUser(ll);
-      setSel(null);
-      nearby(ll, true);
+      ok(ll);
     }, (err) => {
       setToast(err.code === err.PERMISSION_DENIED
         ? "No tenemos permiso para ver tu ubicación. Actívalo en los ajustes del navegador o busca una calle."
         : "No hemos podido saber dónde estás. Prueba otra vez en un momento.");
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   };
+  const locate = () => withPosition((ll) => { select(null); nearby(ll, true); });
+
+  // Where the moto is: kept on this device only.
+  const openParked = (p: Parked) => {
+    setSel(null);
+    setNear(null);
+    setShowParked(true);
+    setLegend(false);
+    reveal(p.ll, Math.max(mapRef.current?.getZoom() ?? 0, 17.4));
+  };
+  const park = (ll: LngLat, street?: string) => {
+    const map = mapRef.current;
+    const p = { ll, t: Date.now(), street };
+    setParked(p);
+    openParked(p);
+    if (street || !map) return;
+    // The street of the nearest sidewalk piece within 40 m; if its tile is not loaded yet, try again when it is.
+    const fill = () => {
+      let bd = 40, name = "";
+      for (const q of loadedPlaces(map, "piece")) {
+        const d = distToLine(ll, q.line);
+        if (d < bd && q.props.calle) { bd = d; name = streetName(q.props.calle); }
+      }
+      if (name) setParked((cur) => (cur?.t === p.t ? { ...cur, street: name } : cur));
+      return !!name;
+    };
+    if (!fill()) map.once("idle", fill);
+  };
+  const motoButton = () => (parked ? openParked(parked) : withPosition((ll) => park(ll)));
   const nearHere = () => {
     const map = mapRef.current;
     if (!map) return;
@@ -282,15 +323,19 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (legend) setLegend(false);
-      else if (sel) setSel(null);
+      else if (sel || showParked) select(null);
       else if (near) setNear(null);
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [legend, sel, near]);
+  }, [legend, sel, near, showParked]);
 
   const selModel = sel ? model(sel, meta) : null;
   const fineYear = meta?.sources.fines?.data_date?.slice(0, 4) ?? "2025";
+  const nearPanel = near && (
+    <Nearby cards={near.cards} isUser={near.isUser} active={active} side={wide}
+      onActive={(i) => pickCard(i, false)} onOpen={(i) => pickCard(i, true)} onClose={() => { setNear(null); setSel(null); }} />
+  );
   const chips: [Filter, string][] = [["todas", "Todas"], ["calzada", "En calzada"], ["acera", "Acera"]];
 
   return (
@@ -322,21 +367,26 @@ export default function App() {
               aria-expanded={legend} aria-controls="legend" onClick={() => setLegend((v) => !v)}>
               <Layers size={22} strokeWidth={1.75} />
             </button>
-            <button type="button" className="locate" aria-label="Mi ubicación" onClick={locate}>
-              <svg className="w-full h-full" viewBox="0 0 56 56" aria-hidden="true"><polygon points="17,1 39,1 55,17 55,39 39,55 17,55 1,39 1,17" /></svg>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3.5" /><path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
-              </svg>
+            <button type="button" className={`float w-12 h-12 grid place-items-center rounded-full ${parked ? "!bg-mar text-sobre-mar !border-mar" : ""}`}
+              aria-label={parked ? "Ver dónde aparqué" : "Guardar dónde aparco"} title={parked ? "Ver dónde aparqué" : "Guardar dónde aparco"} onClick={motoButton}>
+              <Motorbike size={22} strokeWidth={1.75} />
+            </button>
+            <button type="button" className="float w-12 h-12 grid place-items-center rounded-full text-mar" aria-label="Mi ubicación" title="Mi ubicación" onClick={locate}>
+              <LocateFixed size={22} strokeWidth={1.75} />
             </button>
           </div>
         </div>
-        {near && (
-          <Nearby cards={near.cards} isUser={near.isUser} active={active}
-            onActive={(i) => pickCard(i, false)} onOpen={(i) => pickCard(i, true)} onClose={() => { setNear(null); setSel(null); }} />
-        )}
+        {near && !wide && nearPanel}
       </div>
 
-      <Sheet ref={sheetEl} m={selModel} d={selModel && user ? dist(user, selModel.ll) : null} fineYear={fineYear} onClose={() => setSel(null)} onBay={goNearestBay} />
+      {near && wide && nearPanel}
+      <Panel ref={sheetEl} open={!!selModel || (showParked && !!parked)} label={showParked ? "Tu moto" : "Detalle"} onClose={() => select(null)}>
+        {showParked && parked
+          ? <ParkedInfo p={parked} d={user ? dist(user, parked.ll) : null} onForget={() => { setParked(null); select(null); }} />
+          : selModel && <Detail m={selModel} d={user ? dist(user, selModel.ll) : null} fineYear={fineYear} onBay={goNearestBay}
+            onPark={() => park(selModel.ll, selModel.street)} />}
+      </Panel>
+      {createPortal(<Motorbike size={18} strokeWidth={2} aria-label="Tu moto" />, motoEl)}
       {legend && <Legend theme={theme} pref={pref} onPref={setPref} risk={risk} onRisk={setRisk} meta={meta} onClose={() => setLegend(false)} />}
       {toast && (
         <p role="status" className="absolute z-[45] left-4 right-4 top-[calc(132px+env(safe-area-inset-top,0px))] min-[900px]:top-auto min-[900px]:bottom-6 min-[900px]:left-[412px] mx-auto max-w-[420px] m-0 px-4 py-3 rounded-[16px] bg-tinta text-pedra-50 text-sm font-medium shadow-[var(--shadow-float)]">

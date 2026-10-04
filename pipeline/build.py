@@ -6,6 +6,7 @@ A full run also copies both files to web/public/data.
 
 import json
 import math
+import re
 import shutil
 import subprocess
 import sys
@@ -77,6 +78,30 @@ def street_key(text):
     rest = next((rest[len(a):] for a in ARTICLES if rest.startswith(a)), rest)
     fold = unicodedata.normalize("NFD", f"{kind} {rest}".lower())
     return "".join(c for c in fold if not unicodedata.combining(c))
+
+
+def fold(text):
+    """Lower case words without accents or punctuation, so 'Carrer d'Aragó' contains 'ARAGO'."""
+    text = unicodedata.normalize("NFD", str(text).lower())
+    return re.sub(r"[^a-z0-9]+", " ", "".join(c for c in text if not unicodedata.combining(c))).strip()
+
+
+def named_street(names, pts, lab):
+    """Accented full name of each inventory street name ('BAILEN, C., DE'): the nearest label within 300 m
+    whose name contains it. None where no label matches."""
+    core = np.array([fold(str(n).split(",")[0]) for n in names], dtype=object)
+    names_f = np.array([fold(c) for c in lab.calle.values], dtype=object)
+    ri, ti = shapely.STRtree(shapely.points(lab.x.values, lab.y.values)).query(pts, predicate="dwithin", distance=300.0)
+    # Whole words only: 'ROSSELL' must not match 'Carrer del Rosselló'.
+    ok = np.array([bool(core[r]) and f" {core[r]} " in f" {names_f[t]} " for r, t in zip(ri, ti)], dtype=bool)
+    ri, ti = ri[ok], ti[ok]
+    d = shapely.distance(pts[ri], shapely.points(lab.x.values[ti], lab.y.values[ti]))
+    order = np.lexsort((d, ri))
+    ri, ti = ri[order], ti[order]
+    first = np.r_[True, ri[1:] != ri[:-1]] if len(ri) else np.zeros(0, bool)
+    out = np.full(len(pts), None, dtype=object)
+    out[ri[first]] = lab.calle.values[ti[first]]
+    return out
 
 
 def upright(rotate):
@@ -168,16 +193,35 @@ def pieces_layer(bbox, lab):
     }, geometry)
 
 
-def bays_layer(bbox):
+def bays_layer(bbox, lab):
     r = sources.reserves()
     r = clip(r[r.tipus_reserva.isin(rules.BAYS)], bbox)
+    # The inventory writes names in capitals without accents; the labels have the official spelling.
+    full = named_street(r.nom_carrer.values, shapely.line_interpolate_point(r.geometry.values, 0.5, normalized=True), lab)
     return layer({
         "id": r.id_sit,
         "on": np.where(r.tipus_reserva == "Motos vorera", "acera", "calzada"),
         "pl": r.num_places.round().astype("Int64"),
         "tipo": r.tipus_estacionament,
-        "calle": r.nom_carrer,
+        "calle": np.where(pd.isna(full), r.nom_carrer, full),
     }, r.geometry)
+
+
+def zebra_layer(crossings):
+    """Each crossing as its axis in the walking direction, with the band width w in metres.
+
+    The map draws the axis as a wide dashed line, so each dash is one stripe. The walking direction
+    is taken as the long side of the minimum rectangle: crossings are about 4 m wide and most roads are wider.
+    """
+    rect = shapely.oriented_envelope(crossings)
+    xy = shapely.get_coordinates(shapely.get_exterior_ring(rect)).reshape(-1, 5, 2)[:, :4]
+    a, b, c = xy[:, 0], xy[:, 1], xy[:, 2]
+    long_ab = np.hypot(*(b - a).T) >= np.hypot(*(c - b).T)
+    # Axis from the middle of one short side to the middle of the other.
+    start = np.where(long_ab[:, None], (a + xy[:, 3]) / 2, (a + b) / 2)
+    end = np.where(long_ab[:, None], (b + c) / 2, (c + xy[:, 3]) / 2)
+    width = np.where(long_ab, np.hypot(*(c - b).T), np.hypot(*(b - a).T))
+    return layer({"w": width.round(1)}, shapely.linestrings(np.stack([start, end], axis=1)))
 
 
 def fines_layer(bbox):
@@ -223,15 +267,15 @@ def main(bbox=None):
     OUT.mkdir(parents=True, exist_ok=True)
     # Pieces near the bbox edge need the labels just outside it.
     lab = labels(None if bbox is None else tuple(np.add(bbox, [-260, -260, 260, 260])))
-    layers = {"aceras": pieces_layer(bbox, lab), "calles": labels_layer(lab)}
+    layers = {"aceras": pieces_layer(bbox, lab), "calles": labels_layer(lab), "zonas_moto": bays_layer(bbox, lab)}
     del lab
-    layers["pasos"] = layer({}, polygons(sources.crossings(bbox).geometry.values))
+    layers["pasos"] = zebra_layer(polygons(sources.crossings(bbox).geometry.values))
     trees = sources.topo("PUNTS", ["VEG_03_PT"], bbox)
     layers["arboles"] = layer({}, trees.geometry)
     town = sources.municipality()
     layers["limite"] = layer({}, town.geometry)
     layers |= {"manzanas": blocks_layer(bbox), **ground_layers(bbox),
-               "zonas_moto": bays_layer(bbox), "multas": fines_layer(bbox)}
+               "multas": fines_layer(bbox)}
     paths = {}
     for name, gdf in layers.items():
         paths[name] = OUT / f"{name}.geojsonl"
