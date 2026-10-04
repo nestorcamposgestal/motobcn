@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject, type TouchEvent, type UIEvent } from "react";
 import { Motorbike, Navigation, Receipt, Scale, SquareParking, X } from "lucide-react";
+import { lang, locale, t } from "../i18n.ts";
 import { distText, dirURL, fmt, type Model, type Tone } from "../model.ts";
 import type { LngLat, Option } from "../geo.ts";
 import type { Place } from "../model.ts";
@@ -114,11 +115,11 @@ export function Panel({ open, label, onClose, ref, children }: PanelProps) {
     <section ref={el} className="sheet" data-open={open ? "true" : "false"} data-peek={peek ? "true" : "false"} aria-label={label}
       aria-live="polite" {...swipe} onClick={() => peek && setPeek(false)}>
       <div className="flex justify-center min-[900px]:hidden">
-        <button type="button" className="h-11 w-full grid place-items-center" onClick={peek ? undefined : onClose} aria-label={peek ? "Ampliar" : "Cerrar"}>
+        <button type="button" className="h-11 w-full grid place-items-center" onClick={peek ? undefined : onClose} aria-label={t(peek ? "expand" : "close")}>
           <span className="block w-10 h-1 rounded-sm bg-linia" />
         </button>
       </div>
-      <button type="button" className="icon-btn absolute top-3 right-2 hidden min-[900px]:grid" onClick={onClose} aria-label="Cerrar">
+      <button type="button" className="icon-btn absolute top-3 right-2 hidden min-[900px]:grid" onClick={onClose} aria-label={t("close")}>
         <X size={22} strokeWidth={1.75} />
       </button>
       {open && <div ref={body} className="flex-1 min-h-0 overflow-auto overscroll-contain px-4 pb-5 min-[900px]:pt-5 flex flex-col gap-5">{children}</div>}
@@ -151,7 +152,7 @@ export function Detail({ m, d, fineYear, onBay, onPark }: DetailProps) {
           <li>
             <button type="button" className="linkrow" onClick={onBay}>
               <ToneIcon tone="bay" size={20} />
-              {m.bayM <= 100 ? "Zona moto cerca: es la opción preferente" : "Zona moto más cercana"}
+              {t(m.bayM <= 100 ? "bayNear" : "bayNearest")}
               <span className="dato">{distText(m.bayM)}</span>
             </button>
           </li>
@@ -159,7 +160,7 @@ export function Detail({ m, d, fineYear, onBay, onPark }: DetailProps) {
         {m.fines != null && (
           <li className="flex items-center gap-2.5 text-[15px] text-tinta">
             <Receipt size={20} strokeWidth={1.75} />
-            {m.fines ? `${fmt(m.fines, 0)} ${m.fines === 1 ? "multa" : "multas"} a motos cerca de este tramo en ${fineYear}.` : `Ninguna multa a motos cerca de este tramo en ${fineYear}.`}
+            {t(!m.fines ? "fines0" : m.fines === 1 ? "fines1" : "finesN", { n: fmt(m.fines, 0), y: fineYear })}
           </li>
         )}
         <li className="flex items-center gap-2.5 text-[13px] leading-[18px] text-tinta-suau">
@@ -169,14 +170,14 @@ export function Detail({ m, d, fineYear, onBay, onPark }: DetailProps) {
       {m.go && (
         <div className="flex flex-col gap-2">
           <a className="btn-primary" href={dirURL(m.ll)} target="_blank" rel="noopener">
-            <Navigation size={22} strokeWidth={1.75} />Cómo llegar
+            <Navigation size={22} strokeWidth={1.75} />{t("directions")}
           </a>
           <button type="button" className="linkrow" onClick={onPark}>
-            <SquareParking size={20} strokeWidth={1.75} />He aparcado aquí
+            <SquareParking size={20} strokeWidth={1.75} />{t("parkedHere")}
           </button>
         </div>
       )}
-      <p className="m-0 -mt-1 text-[13px] leading-[18px] text-tinta-suau">Según la ordenanza. Revisa la señalización.</p>
+      <p className="m-0 -mt-1 text-[13px] leading-[18px] text-tinta-suau">{t("sheetNote")}</p>
     </>
   );
 }
@@ -187,32 +188,32 @@ export interface Parked {
   t: number;
   street?: string;
 }
-const ago = (t: number) => {
-  const min = Math.round((Date.now() - t) / 60000);
-  const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
-  if (min < 1) return "ahora mismo";
+const ago = (at: number) => {
+  const min = Math.round((Date.now() - at) / 60000);
+  const rtf = new Intl.RelativeTimeFormat(lang(), { numeric: "auto" });
+  if (min < 1) return t("justNow");
   if (min < 60) return rtf.format(-min, "minute");
   if (min < 48 * 60) return rtf.format(-Math.round(min / 60), "hour");
   return rtf.format(-Math.round(min / 1440), "day");
 };
 export function ParkedInfo({ p, d, onForget }: { p: Parked; d: number | null; onForget: () => void }) {
-  const when = new Date(p.t).toLocaleString("es-ES", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  const when = new Date(p.t).toLocaleString(locale(), { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   return (
     <>
       <div className="flex flex-col gap-2">
         <div className="flex items-center flex-wrap gap-x-3 gap-y-2 pr-11">
-          <span className="tag label t-moto"><Motorbike size={16} strokeWidth={2.25} aria-hidden="true" />TU MOTO</span>
+          <span className="tag label t-moto"><Motorbike size={16} strokeWidth={2.25} aria-hidden="true" />{t("parkedTag")}</span>
           <span className="dato">{[d != null ? distText(d) : "", ago(p.t)].filter(Boolean).join(" · ")}</span>
         </div>
-        <h2 className="m-0 mt-1 font-display font-semibold text-[28px] leading-8 tracking-[-0.01em] text-balance [overflow-wrap:anywhere]">{p.street || "Donde aparcaste"}</h2>
-        <p className="m-0 text-sm text-tinta-suau">Guardada el {when}. Solo se guarda en este dispositivo.</p>
+        <h2 className="m-0 mt-1 font-display font-semibold text-[28px] leading-8 tracking-[-0.01em] text-balance [overflow-wrap:anywhere]">{p.street || t("parkedTitle")}</h2>
+        <p className="m-0 text-sm text-tinta-suau">{t("savedOn", { when })}</p>
       </div>
       <div className="flex flex-col gap-2">
         <a className="btn-primary" href={dirURL(p.ll, "walking")} target="_blank" rel="noopener">
-          <Navigation size={22} strokeWidth={1.75} />Volver a la moto
+          <Navigation size={22} strokeWidth={1.75} />{t("backToMoto")}
         </a>
         <button type="button" className="linkrow" onClick={onForget}>
-          <X size={20} strokeWidth={1.75} />Ya la he recogido
+          <X size={20} strokeWidth={1.75} />{t("pickedUp")}
         </button>
       </div>
     </>
@@ -252,29 +253,29 @@ export function Nearby({ cards, isUser, active, onActive, onOpen, onClose, side 
   };
   return (
     <section className={side ? "side-panel absolute z-20 left-4 top-[136px] w-[380px] max-h-[calc(100%-152px)] flex flex-col"
-      : "flex flex-col gap-2 pointer-events-auto transition-transform duration-200"} aria-label="Opciones cercanas" {...(side ? {} : swipe)}>
+      : "flex flex-col gap-2 pointer-events-auto transition-transform duration-200"} aria-label={t("nearby")} {...(side ? {} : swipe)}>
       <div className={`flex items-center gap-2 ${side ? "pl-5 pr-2 pt-3 pb-1" : "px-4"}`}>
         <p className={`m-0 label leading-[18px] whitespace-nowrap ${side ? "" : "float rounded-2xl px-3 py-1.5"}`}>
-          {isUser ? "Cerca de ti" : "Cerca del centro del mapa"}{" "}
-          <span className="font-mono font-medium normal-case tracking-normal text-tinta-suau">· {cards.length}<span className="sr-only"> {cards.length === 1 ? "opción" : "opciones"}</span></span>
+          {t(isUser ? "nearYou" : "nearCenter")}{" "}
+          <span className="font-mono font-medium normal-case tracking-normal text-tinta-suau">· {cards.length}<span className="sr-only"> {t(cards.length === 1 ? "option" : "options")}</span></span>
         </p>
-        <button type="button" className={`icon-btn ml-auto ${side ? "" : "float !bg-pedra-100"}`} onClick={onClose} aria-label="Cerrar opciones cercanas"><X size={20} strokeWidth={1.75} /></button>
+        <button type="button" className={`icon-btn ml-auto ${side ? "" : "float !bg-pedra-100"}`} onClick={onClose} aria-label={t("closeNearby")}><X size={20} strokeWidth={1.75} /></button>
       </div>
       <ol className={side ? "m-0 px-3 pt-1 pb-3 list-none flex flex-col gap-3 overflow-auto overscroll-contain" : "cards"} onScroll={side ? undefined : onScroll}>
         {cards.length ? cards.map(({ o, m }, i) => (
           <li key={o.kind + o.id} className="card float rounded-[16px] p-3.5 flex flex-col gap-3" aria-current={i === active}>
             <button type="button" className="flex flex-col gap-1.5 w-full p-0 border-0 bg-transparent text-left rounded-[8px]"
-              onClick={() => onOpen(i)} aria-label={`${m.label}, ${m.street}, a ${distText(o.d)}. Ver detalle`}>
+              onClick={() => onOpen(i)} aria-label={t("cardAria", { label: m.label, street: m.street, d: distText(o.d) })}>
               <span className="flex items-center justify-between gap-2"><Tag m={m} /><span className="dato">{distText(o.d)}</span></span>
               <span className="font-display font-semibold text-xl leading-tight line-clamp-2">{m.street}</span>
-              <span className="text-sm text-tinta-suau">{o.kind === "bay" ? `${m.size} · ${m.sub.split(" · ")[0].toLowerCase()}` : m.size || "acera sin medir"}</span>
+              <span className="text-sm text-tinta-suau">{o.kind === "bay" ? `${m.size} · ${m.sub.split(" · ")[0].toLowerCase()}` : m.size || t("unmeasured")}</span>
             </button>
             <a className="btn-primary !min-h-11 text-[15px]" href={dirURL(m.ll)} target="_blank" rel="noopener">
-              <Navigation size={20} strokeWidth={1.75} />Cómo llegar
+              <Navigation size={20} strokeWidth={1.75} />{t("directions")}
             </a>
           </li>
         )) : (
-          <li className="card float rounded-[16px] p-3.5 text-tinta-suau">Nada para aparcar a menos de 300 m. Mueve el mapa y vuelve a probar.</li>
+          <li className="card float rounded-[16px] p-3.5 text-tinta-suau">{t("nothingNear")}</li>
         )}
       </ol>
     </section>

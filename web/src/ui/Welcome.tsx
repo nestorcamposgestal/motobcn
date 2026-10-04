@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { t } from "../i18n.ts";
 
 // The simple mark: chamfered octagon and scooter, from docs/design/assets/marca-simple.svg.
 export function Mark({ fill, fg, bg, stroke = "none", sw = 0, className }: { fill: string; fg: string; bg: string; stroke?: string; sw?: number; className?: string }) {
@@ -85,12 +86,12 @@ export function Welcome({ progress, theme, onEnter }: { progress: number; theme:
       </div>
       <div className="flex-none flex flex-col gap-2.5 px-6 pt-7 pb-[calc(24px+env(safe-area-inset-bottom,0px))] min-[900px]:w-[440px] min-[900px]:justify-center min-[900px]:p-12">
         <h1 id="welcome-title" className="m-0 font-display font-semibold text-[40px] leading-[44px] tracking-[-0.02em]">MotoBCN</h1>
-        <p className="m-0 text-lg leading-[1.45] text-tinta-suau">Aparca la moto en Barcelona, sin dudas.</p>
-        <div className="w-[120px] h-1.5 mt-2.5 mb-1.5 rounded-[3px] bg-linia overflow-hidden" role="progressbar" aria-label="Cargando el mapa"
+        <p className="m-0 text-lg leading-[1.45] text-tinta-suau">{t("tagline")}</p>
+        <div className="w-[120px] h-1.5 mt-2.5 mb-1.5 rounded-[3px] bg-linia overflow-hidden" role="progressbar" aria-label={t("loading")}
           aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
           <span className="block h-full bg-mar transition-[width] duration-300" style={{ width: `${pct}%` }} />
         </div>
-        <button ref={btn} type="button" className="btn-primary" onClick={onEnter}>Entrar al mapa</button>
+        <button ref={btn} type="button" className="btn-primary" onClick={onEnter}>{t("enter")}</button>
       </div>
     </div>
   );

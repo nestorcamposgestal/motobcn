@@ -13,6 +13,7 @@ import { Search } from "./ui/Search.tsx";
 import { Legend, type ThemePref } from "./ui/Legend.tsx";
 import { Welcome } from "./ui/Welcome.tsx";
 import { Intro } from "./ui/Intro.tsx";
+import { detect, setLang, t, type Lang } from "./i18n.ts";
 
 setWorkerUrl(workerUrl);
 const protocol = new Protocol();
@@ -80,6 +81,12 @@ function hitAt(map: MlMap, x: number, y: number, r = 12): Place | null {
 interface Near { from: LngLat; isUser: boolean; cards: Card[] }
 
 export default function App() {
+  const [lng, setLng] = useState<Lang>(() => {
+    const saved = store.get("motobcn.lang") as Lang | null;
+    return saved && ["es", "ca", "en"].includes(saved) ? saved : detect();
+  });
+  // Before the children render, so every t() call of this render reads the chosen language.
+  setLang(lng);
   const [pref, setPref] = useState<ThemePref>(() => (["light", "dark"].includes(store.get("motobcn.theme") ?? "") ? store.get("motobcn.theme") as ThemePref : "system"));
   const systemDark = useMedia(darkMQ);
   const wide = useMedia(wideMQ);
@@ -136,7 +143,7 @@ export default function App() {
       if (dead) return;
       setMeta(m);
       setProgress(0.4);
-      if (!header) { setFailure("Falta el mapa de aceras. Comprueba la conexión y recarga la página."); return; }
+      if (!header) { setFailure(t("failMap")); return; }
       const b = m?.bounds ?? BCN_BOUNDS, pad = 0.02;
       const center = m?.center ?? (header.centerLon ? [header.centerLon, header.centerLat] as LngLat : BCN_CENTER);
       map = new MlMap({
@@ -253,22 +260,21 @@ export default function App() {
 
   const withPosition = (ok: (ll: LngLat) => void) => {
     if (!("geolocation" in navigator) || !isSecureContext) {
-      setToast("Este navegador no nos da tu ubicación. Busca una calle o mueve el mapa.");
+      setToast(t("geoNone"));
       return;
     }
     navigator.geolocation.getCurrentPosition((pos) => {
       const ll: LngLat = [pos.coords.longitude, pos.coords.latitude];
       const [w, s, e, n] = bounds;
       if (ll[0] < w || ll[0] > e || ll[1] < s || ll[1] > n) {
-        setToast("Estás fuera de Barcelona. El mapa solo cubre la ciudad.");
+        setToast(t("geoOutside"));
         return;
       }
       setUser(ll);
       ok(ll);
     }, (err) => {
       setToast(err.code === err.PERMISSION_DENIED
-        ? "No tenemos permiso para ver tu ubicación. Actívalo en los ajustes del navegador o busca una calle."
-        : "No hemos podido saber dónde estás. Prueba otra vez en un momento.");
+        ? t("geoDenied") : t("geoFail"));
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   };
   const locate = () => withPosition((ll) => { select(null); nearby(ll, true); });
@@ -305,7 +311,7 @@ export default function App() {
     if (!map) return;
     if (user) { nearby(user, true); return; }
     const c = map.getCenter();
-    setToast("Sin tu ubicación: buscamos cerca del centro del mapa.");
+    setToast(t("nearCenterToast"));
     nearby([c.lng, c.lat], false);
   };
   const goNearestBay = () => {
@@ -314,7 +320,7 @@ export default function App() {
     const from = midpoint(sel.line);
     const [best] = rankNearby(from, loadedPlaces(map, "bay").filter((p) => inChip(p, filter)), 1, 0);
     if (best) select(best, Math.max(map.getZoom(), 17.6));
-    else setToast("La zona moto no está en la vista. Aleja el mapa para verla.");
+    else setToast(t("bayOut"));
   };
   const pickCard = (i: number, open: boolean) => {
     const card = near?.cards[i], map = mapRef.current;
@@ -340,23 +346,23 @@ export default function App() {
   const selModel = sel ? model(sel, meta) : null;
   const fineYear = meta?.sources.fines?.data_date?.slice(0, 4) ?? "2025";
   const nearPanel = near && (
-    <Nearby cards={near.cards} isUser={near.isUser} active={active} side={wide}
+    <Nearby cards={near.cards.map(({ o }) => ({ o, m: model(o, meta) }))} isUser={near.isUser} active={active} side={wide}
       onActive={(i) => pickCard(i, false)} onOpen={(i) => pickCard(i, true)} onClose={() => { setNear(null); setSel(null); }} />
   );
-  const chips: [Filter, string][] = [["todas", "Todas"], ["calzada", "En calzada"], ["acera", "Acera"]];
+  const chips: [Filter, string][] = [["todas", t("chipAll")], ["calzada", t("chipRoad")], ["acera", t("chipSidewalk")]];
 
   return (
     <main className="relative h-full overflow-hidden bg-pedra-200">
-      <div ref={mapEl} className="absolute inset-0" role="region" aria-label="Mapa de aparcamiento de motos en Barcelona" />
+      <div ref={mapEl} className="absolute inset-0" role="region" aria-label={t("mapRegion")} />
       {failure && (
         <div className="absolute inset-0 z-[60] grid place-items-center p-6 bg-pedra-50 text-center">
-          <p className="m-0 max-w-[32ch] text-tinta-suau"><strong className="block mb-1 font-display font-semibold text-xl text-tinta">No se ha podido cargar el mapa</strong>{failure}</p>
+          <p className="m-0 max-w-[32ch] text-tinta-suau"><strong className="block mb-1 font-display font-semibold text-xl text-tinta">{t("failTitle")}</strong>{failure}</p>
         </div>
       )}
 
       <div className="absolute z-20 top-[calc(16px+env(safe-area-inset-top,0px))] left-4 right-4 min-[900px]:right-auto min-[900px]:w-[380px] flex flex-col gap-2">
         <Search bounds={bounds} onPick={(ll) => { setSel(null); setNear(null); mapRef.current?.flyTo({ center: ll, zoom: 17.6, duration: dur(1400), essential: true }); }} />
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Qué mostrar">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t("show")}>
           {chips.map(([k, t]) => (
             <button key={k} type="button" className="chip float label" aria-pressed={filter === k}
               onClick={() => { setFilter(k); if (sel && !inChip(sel, k)) setSel(null); }}>{t}</button>
@@ -368,18 +374,18 @@ export default function App() {
         transition-opacity ${!wide && (sel || showParked) ? "opacity-0 invisible" : ""}`}>
         <div className="flex items-end justify-between gap-3 px-4">
           <button type="button" className="float pointer-events-auto flex items-center gap-2 min-h-11 px-4 rounded-[22px] label" onClick={nearHere}>
-            <MapPin size={18} strokeWidth={1.75} aria-hidden="true" />Cerca de ti
+            <MapPin size={18} strokeWidth={1.75} aria-hidden="true" />{t("nearYou")}
           </button>
           <div className="flex flex-col items-center gap-3 pointer-events-auto">
-            <button type="button" className="float w-12 h-12 grid place-items-center rounded-full" aria-label="Leyenda, capas y tema"
+            <button type="button" className="float w-12 h-12 grid place-items-center rounded-full" aria-label={t("legendBtn")}
               aria-expanded={legend} aria-controls="legend" onClick={() => setLegend((v) => !v)}>
               <Layers size={22} strokeWidth={1.75} />
             </button>
             <button type="button" className={`float w-12 h-12 grid place-items-center rounded-full ${parked ? "!bg-mar text-sobre-mar !border-mar" : ""}`}
-              aria-label={parked ? "Ver dónde aparqué" : "Guardar dónde aparco"} title={parked ? "Ver dónde aparqué" : "Guardar dónde aparco"} onClick={motoButton}>
+              aria-label={t(parked ? "parkedSee" : "parkedSave")} title={t(parked ? "parkedSee" : "parkedSave")} onClick={motoButton}>
               <Motorbike size={22} strokeWidth={1.75} />
             </button>
-            <button type="button" className="float w-12 h-12 grid place-items-center rounded-full text-mar" aria-label="Mi ubicación" title="Mi ubicación" onClick={locate}>
+            <button type="button" className="float w-12 h-12 grid place-items-center rounded-full text-mar" aria-label={t("myLocation")} title={t("myLocation")} onClick={locate}>
               <LocateFixed size={22} strokeWidth={1.75} />
             </button>
           </div>
@@ -389,14 +395,14 @@ export default function App() {
       </div>
 
       {near && wide && nearPanel}
-      <Panel ref={sheetEl} open={!!selModel || (showParked && !!parked)} label={showParked ? "Tu moto" : "Detalle"} onClose={() => select(null)}>
+      <Panel ref={sheetEl} open={!!selModel || (showParked && !!parked)} label={t(showParked ? "yourMoto" : "detail")} onClose={() => select(null)}>
         {showParked && parked
           ? <ParkedInfo p={parked} d={user ? dist(user, parked.ll) : null} onForget={() => { setParked(null); select(null); }} />
           : selModel && <Detail m={selModel} d={user ? dist(user, selModel.ll) : null} fineYear={fineYear} onBay={goNearestBay}
             onPark={() => park(selModel.ll, selModel.street)} />}
       </Panel>
-      {createPortal(<Motorbike size={18} strokeWidth={2} aria-label="Tu moto" />, motoEl)}
-      {legend && <Legend theme={theme} pref={pref} onPref={setPref} risk={risk} onRisk={setRisk} meta={meta} onClose={() => setLegend(false)}
+      {createPortal(<Motorbike size={18} strokeWidth={2} aria-label={t("yourMoto")} />, motoEl)}
+      {legend && <Legend theme={theme} pref={pref} onPref={setPref} risk={risk} onRisk={setRisk} meta={meta} lang={lng} onLang={(l) => { setLng(l); store.set("motobcn.lang", l); }} onClose={() => setLegend(false)}
         onHelp={() => { setLegend(false); setIntro(true); }} />}
       {toast && (
         <p role="status" className="absolute z-[45] left-4 right-4 top-[calc(132px+env(safe-area-inset-top,0px))] min-[900px]:top-auto min-[900px]:bottom-6 min-[900px]:left-[412px] mx-auto max-w-[420px] m-0 px-4 py-3 rounded-[16px] bg-tinta text-pedra-50 text-sm font-medium shadow-[var(--shadow-float)]">

@@ -1,6 +1,7 @@
 import { CircleHelp, X } from "lucide-react";
 import { PAL, type Theme } from "../map/style.ts";
 import { fmt, type Meta } from "../model.ts";
+import { LANGS, locale, t, type Key, type Lang } from "../i18n.ts";
 
 export type ThemePref = "system" | "light" | "dark";
 
@@ -26,26 +27,19 @@ function Swatch({ kind, theme }: { kind: string; theme: Theme }) {
   );
 }
 
-const ITEMS = [
-  ["bay", "Zona moto", "Plazas reservadas en la calzada o en la acera. La opción preferente."],
-  ["ok", "Paralelo", "Acera de 4,3 a 6 m: aparca en paralelo, a medio metro del bordillo."],
-  ["semi", "Semibatería", "Acera de más de 6 m: aparca en semibatería."],
-  ["no", "No aparcar", "Acera de 4,3 m o menos, paso de peatones a menos de 2 m, paradas, reservas, escuelas, hospitales, calles peatonales."],
-  ["prob", "Probable", "Probablemente prohibido: hay una señal cerca que incluye las motos en la acera. Comprueba la señal."],
-  ["nodata", "Sin datos", "Espacio abierto o anchura dudosa. Mira la señalización."],
-  ["risk", "Riesgo de multa", "Dónde se multa a motos, con más peso si hubo grúa."],
-] as const;
+// Swatch kind and dictionary key: the description key is the name key plus "D".
+const ITEMS: [string, Key][] = [["bay", "lgBay"], ["ok", "lgOk"], ["semi", "lgSemi"], ["no", "lgNo"], ["prob", "lgProb"], ["nodata", "lgNodata"], ["risk", "lgRisk"]];
 
-const SOURCE: Record<string, string> = {
-  reserves: "Inventario de reservas de aparcamiento", inca: "Accesibilidad de la vía pública", crossings: "Mapa topográfico: pasos de peatones",
-  municipality: "Límite municipal", transit_stops: "Paradas de bus y tranvía", bike_lanes: "Carriles bici", pedestrian_streets: "Calles peatonales y ejes verdes",
-  signs: "Señales de tráfico", trees: "Arbolado", schools: "Centros educativos", hospitals: "Hospitales y urgencias", fines: "Multas de tráfico",
+const SOURCE: Record<string, Key> = {
+  reserves: "srcReserves", inca: "srcInca", crossings: "srcCrossings", municipality: "srcMunicipality", transit_stops: "srcTransit",
+  bike_lanes: "srcBike", pedestrian_streets: "srcPedestrian", signs: "srcSigns", trees: "srcTrees", schools: "srcSchools",
+  hospitals: "srcHospitals", fines: "srcFines",
 };
-const KM: Record<string, string> = { paralelo: "en paralelo", semibateria: "en semibatería", prohibido: "prohibidos", senal: "probablemente prohibidos", sin_datos: "sin datos" };
+const KM: Record<string, Key> = { paralelo: "kmOk", semibateria: "kmSemi", prohibido: "kmNo", senal: "kmProb", sin_datos: "kmNodata" };
 const when = (d?: string) => {
   if (!d) return "";
   if (d.length <= 4) return d;
-  return new Date(d + "T12:00:00").toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  return new Date(d + "T12:00:00").toLocaleDateString(locale(), { month: "long", year: "numeric" });
 };
 
 interface Props {
@@ -55,55 +49,65 @@ interface Props {
   risk: boolean;
   onRisk: (v: boolean) => void;
   meta: Meta | null;
+  lang: Lang;
+  onLang: (l: Lang) => void;
   onClose: () => void;
   onHelp: () => void;
 }
-export function Legend({ theme, pref, onPref, risk, onRisk, meta, onClose, onHelp }: Props) {
+export function Legend({ theme, pref, onPref, risk, onRisk, meta, lang, onLang, onClose, onHelp }: Props) {
   const km = meta?.status_km ?? {};
   return (
     <section id="legend" aria-labelledby="legend-title"
       className="absolute z-40 left-0 right-0 bottom-0 max-h-[82%] overflow-auto overscroll-contain bg-pedra-100 rounded-t-[28px] shadow-[var(--shadow-sheet)] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))]
         min-[900px]:left-auto min-[900px]:right-[88px] min-[900px]:bottom-4 min-[900px]:w-[380px] min-[900px]:max-h-[calc(100%-32px)] min-[900px]:rounded-[28px] min-[900px]:shadow-[var(--shadow-float)]">
       <div className="flex items-start justify-between gap-3">
-        <h2 id="legend-title" className="m-0 font-display font-semibold text-xl leading-[26px] pt-2">Leyenda</h2>
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Cerrar leyenda" autoFocus><X size={22} strokeWidth={1.75} /></button>
+        <h2 id="legend-title" className="m-0 font-display font-semibold text-xl leading-[26px] pt-2">{t("legend")}</h2>
+        <button type="button" className="icon-btn" onClick={onClose} aria-label={t("closeLegend")} autoFocus><X size={22} strokeWidth={1.75} /></button>
       </div>
       <ul className="m-0 mt-2 p-0 list-none grid gap-0.5">
-        {ITEMS.map(([k, t, d]) => (
+        {ITEMS.map(([k, name]) => (
           <li key={k} className="grid grid-cols-[56px_1fr] gap-3 items-center py-1.5">
             <Swatch kind={k} theme={theme} />
-            <div><b className="block label">{t}</b><span className="text-sm leading-5 text-tinta-suau">{d}</span></div>
+            <div><b className="block label">{t(name)}</b><span className="text-sm leading-5 text-tinta-suau">{t(`${name}D` as Key)}</span></div>
           </li>
         ))}
       </ul>
-      <p className="m-0 mt-4 px-3 py-2.5 rounded-[8px] bg-pedra-200 font-bold">Orientativo: manda la señalización.</p>
-      <button type="button" className="linkrow mt-2" onClick={onHelp}><CircleHelp size={20} strokeWidth={1.75} />Cómo funciona</button>
+      <p className="m-0 mt-4 px-3 py-2.5 rounded-[8px] bg-pedra-200 font-bold">{t("indicative")}</p>
+      <button type="button" className="linkrow mt-2" onClick={onHelp}><CircleHelp size={20} strokeWidth={1.75} />{t("howItWorks")}</button>
 
-      <h3 className="m-0 mt-6 font-display font-semibold text-base">Capas y tema</h3>
+      <h3 className="m-0 mt-6 font-display font-semibold text-base">{t("layersTheme")}</h3>
       <button type="button" role="switch" aria-checked={risk} onClick={() => onRisk(!risk)}
         className="flex items-center justify-between gap-3 w-full min-h-12 mt-1 p-0 border-0 bg-transparent text-left rounded-[8px]">
-        Riesgo de multa<span className="toggle" aria-hidden="true" />
+        {t("lgRisk")}<span className="toggle" aria-hidden="true" />
       </button>
-      <div className="flex gap-1 p-1 mt-2 rounded-[12px] bg-pedra-200" role="radiogroup" aria-label="Tema">
+      <div className="flex gap-1 p-1 mt-2 rounded-[12px] bg-pedra-200" role="radiogroup" aria-label={t("theme")}>
         {(["light", "dark", "system"] as const).map((p) => (
           <button key={p} type="button" role="radio" aria-checked={pref === p} onClick={() => onPref(p)}
             className="flex-1 min-h-11 rounded-[9px] border-0 bg-transparent font-semibold text-sm text-tinta-suau aria-checked:bg-pedra-100 aria-checked:text-tinta aria-checked:shadow-[0_1px_3px_var(--drop)]">
-            {{ light: "Día", dark: "Noche", system: "Sistema" }[p]}
+            {t(({ light: "day", dark: "night", system: "system" } as const)[p])}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1 p-1 mt-2 rounded-[12px] bg-pedra-200" role="radiogroup" aria-label={t("language")}>
+        {LANGS.map(([l, name]) => (
+          <button key={l} type="button" role="radio" aria-checked={lang === l} onClick={() => onLang(l)} lang={l}
+            className="flex-1 min-h-11 rounded-[9px] border-0 bg-transparent font-semibold text-sm text-tinta-suau aria-checked:bg-pedra-100 aria-checked:text-tinta aria-checked:shadow-[0_1px_3px_var(--drop)]">
+            {name}
           </button>
         ))}
       </div>
 
-      <h3 className="m-0 mt-6 font-display font-semibold text-base">Sobre los datos</h3>
+      <h3 className="m-0 mt-6 font-display font-semibold text-base">{t("aboutData")}</h3>
       <div className="text-[13px] leading-[18px] text-tinta-suau flex flex-col gap-2 mt-2">
-        <p className="m-0">El ancho de cada tramo se mide sobre la cartografía municipal y el estado aplica el art. 40 de la Ordenanza de circulación de Barcelona. Las señales se sitúan de forma aproximada. No hay datos de vados ni de contenedores.</p>
+        <p className="m-0">{t("aboutText")}</p>
         {Object.keys(km).length > 0 && (
-          <p className="m-0">En el mapa: {Object.entries(km).map(([s, v]) => `${fmt(v)} km ${KM[s] ?? s}`).join(", ")}.</p>
+          <p className="m-0">{t("onMap", { list: Object.entries(km).map(([s, v]) => `${fmt(v)} km ${KM[s] ? t(KM[s]) : s}`).join(", ") })}</p>
         )}
         <p className="m-0">
-          Font de les dades: Ajuntament de Barcelona, TMB, AMB, Powered by TRAM Barcelona y © OpenStreetMap contributors (ODbL).
-          {meta && " " + Object.entries(meta.sources).map(([k, s]) => `${SOURCE[k] ?? k} (${when(s.data_date)})`).join(", ") + "."}
+          Font de les dades: Ajuntament de Barcelona, TMB, AMB, Powered by TRAM Barcelona {t("and")} © OpenStreetMap contributors (ODbL).
+          {meta && " " + Object.entries(meta.sources).map(([k, s]) => `${SOURCE[k] ? t(SOURCE[k]) : k} (${when(s.data_date)})`).join(", ") + "."}
         </p>
-        {meta?.built && <p className="m-0">Datos preparados el {new Date(meta.built + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}.</p>}
+        {meta?.built && <p className="m-0">{t("built", { d: new Date(meta.built + "T12:00:00").toLocaleDateString(locale(), { day: "numeric", month: "long", year: "numeric" }) })}</p>}
       </div>
     </section>
   );

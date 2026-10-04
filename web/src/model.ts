@@ -1,5 +1,6 @@
 // What a place means for the rider: one model, rendered by the sheet and the nearby cards.
 import { midpoint, type LngLat } from "./geo.ts";
+import { locale, rule, t, type Key } from "./i18n.ts";
 
 export interface Meta {
   built: string;
@@ -33,18 +34,19 @@ export interface Model {
   go: boolean;
 }
 
-export const fmt = (n: number, d = 1) => n.toLocaleString("es-ES", { maximumFractionDigits: d });
+export const fmt = (n: number, d = 1) => n.toLocaleString(locale(), { maximumFractionDigits: d });
 export function distText(m: number) {
   if (m >= 1000) return `${fmt(m / 1000, 1)} km`;
   return `${fmt(m < 100 ? Math.max(5, Math.round(m / 5) * 5) : Math.round(m / 10) * 10, 0)} m`;
 }
 
-const STATUS: Record<string, { tone: Tone; label: string; action: string; law: string }> = {
-  paralelo: { tone: "ok", label: "PARALELO", action: "Aparca en paralelo, a medio metro del bordillo.", law: "art. 40.4.a, 40.4.d" },
-  semibateria: { tone: "semi", label: "SEMIBATERÍA", action: "Aparca en semibatería, a medio metro del bordillo.", law: "art. 40.4.a, 40.4.e" },
-  prohibido: { tone: "no", label: "NO APARCAR", action: "No aparques aquí.", law: "art. 40.4" },
-  senal: { tone: "prob", label: "PROBABLE", action: "Probablemente prohibido por una señal cercana.", law: "art. 40.4" },
-  sin_datos: { tone: "nodata", label: "SIN DATOS", action: "No hemos podido medir esta acera. Mira la señalización y deja siempre 3 m libres.", law: "art. 40.4.h" },
+// label and action are dictionary keys: the action key is the label key plus "Do".
+const STATUS: Record<string, { tone: Tone; label: Key; law: string }> = {
+  paralelo: { tone: "ok", label: "stOk", law: "art. 40.4.a, 40.4.d" },
+  semibateria: { tone: "semi", label: "stSemi", law: "art. 40.4.a, 40.4.e" },
+  prohibido: { tone: "no", label: "stNo", law: "art. 40.4" },
+  senal: { tone: "prob", label: "stProb", law: "art. 40.4" },
+  sin_datos: { tone: "nodata", label: "stNodata", law: "art. 40.4.h" },
 };
 export const toneOf = (st: unknown): Tone => STATUS[String(st)]?.tone ?? "nodata";
 
@@ -62,7 +64,8 @@ export function streetName(raw: unknown) {
   return [VIA[via.toUpperCase()] ?? title(via), join + title(name)].filter(Boolean).join(" ").trim();
 }
 
-const BAY_KIND: Record<string, string> = { "Batería": "En batería", "Línea": "En línea", "Chaflán": "En chaflán", "Parrilla": "En parrilla" };
+const BAY_KIND: Record<string, Key> = { "Batería": "kindBattery", "Línea": "kindLine", "Chaflán": "kindChamfer", "Parrilla": "kindGrid" };
+const places = (n: number) => (n === 1 ? t("place1") : t("placesN", { n: fmt(n, 0) }));
 const codes = (v: unknown) => String(v ?? "").split("|").filter(Boolean);
 
 export function model(p: Place, meta: Meta | null): Model {
@@ -71,24 +74,25 @@ export function model(p: Place, meta: Meta | null): Model {
   if (p.kind === "bay") {
     const pl = Number(P.pl) || 0;
     const onSidewalk = P.on === "acera";
-    return { tone: "bay", label: onSidewalk ? "ZONA MOTO" : "EN CALZADA", street: streetName(P.calle) || "Zona moto",
-      sub: [BAY_KIND[String(P.tipo)] ?? "Plazas reservadas", onSidewalk ? "en la acera" : "en la calzada"].join(" · "),
-      size: pl ? `${fmt(pl, 0)} ${pl === 1 ? "plaza" : "plazas"}` : "plazas sin contar",
-      body: ["Es la opción preferente de la ordenanza: aparca aquí antes que en la acera."], law: "OCVV art. 40.4",
+    const kind = BAY_KIND[String(P.tipo)];
+    return { tone: "bay", label: t(onSidewalk ? "bayTag" : "roadTag"), street: streetName(P.calle) || t("bay"),
+      sub: [kind ? t(kind) : t("reserved"), t(onSidewalk ? "onSidewalk" : "onRoad")].join(" · "),
+      size: pl ? places(pl) : t("placesUnknown"),
+      body: [t("bayBody")], law: "OCVV art. 40.4",
       bayM: null, fines: null, ll, go: true };
   }
   const T = meta?.texts ?? {};
+  const text = (c: string) => rule(c, T[c]);
   const s = STATUS[String(P.st)] ?? STATUS.sin_datos;
-  const why = codes(P.r).filter((c) => T[c]);
-  const notes = codes(P.n).filter((c) => T[c]);
+  const why = codes(P.r).filter((c) => text(c));
+  const notes = codes(P.n).filter((c) => text(c));
   const allowed = s.tone === "ok" || s.tone === "semi";
-  const first = P.st === "sin_datos" && P.k === "obert"
-    ? "Espacio peatonal abierto, como una plaza o un chaflán ancho. Todavía no calculamos cómo aparcar aquí: mira la señalización."
-    : allowed || !why.length ? s.action : null;
-  const body = [first, ...why.map((c) => T[c][0]), ...(allowed ? notes.map((c) => T[c][0]) : [])].filter((t): t is string => !!t);
-  const refs = [...new Set([...why, ...(allowed ? notes : [])].map((c) => T[c][1]))];
+  const first = P.st === "sin_datos" && P.k === "obert" ? t("openSpace")
+    : allowed || !why.length ? t(`${s.label}Do` as Key) : null;
+  const body = [first, ...why.map((c) => text(c)![0]), ...(allowed ? notes.map((c) => text(c)![0]) : [])].filter((x): x is string => !!x);
+  const refs = [...new Set([...why, ...(allowed ? notes : [])].map((c) => text(c)![1]))];
   const w = typeof P.w === "number" ? P.w : null;
-  return { tone: s.tone, label: s.label, street: streetName(P.calle) || "Acera", sub: "", size: w != null ? `acera ${fmt(w)} m` : "",
+  return { tone: s.tone, label: t(s.label), street: streetName(P.calle) || t("sidewalk"), sub: "", size: w != null ? t("sidewalkW", { w: fmt(w) }) : "",
     body, law: "OCVV " + (refs.length ? refs.join(" · ") : s.law),
     bayM: typeof P.bay === "number" ? P.bay : null, fines: typeof P.mul === "number" ? P.mul : null, ll, go: allowed || s.tone === "nodata" };
 }
