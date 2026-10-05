@@ -1,0 +1,81 @@
+/* Xamfrà: tokens, base styles and the components that the landing page and the app share. */
+/* Xamfrà tokens (docs/design/tokens.json): Día by default, Noche by system preference or by choice. */
+:root {
+  --pedra-50: #F7F4EE; --pedra-100: #FFFFFF; --pedra-200: #EDE8DF; --linia: #DDD6CA;
+  --tinta: #16181A; --tinta-suau: #5C5A55;
+  --mar: #1F3C6E; --sobre-mar: #FFFFFF; --mar-suau: #E3EAF4; --focus: #1F3C6E;
+  --rajola-blau: #2E6FB7; --rajola-groc: #F2C230; --rajola-groc-vora: #9C7410; --rajola-verd: #3E8E5A; --rajola-vermell: #D9492E; --rajola-junta: #E6DFD1;
+  --tile-mar: #1F3C6E; --tessela: #F4EFE6; --oct-fill: #F3EEE5;
+  --shadow-sheet: 0 -8px 24px rgba(22, 24, 26, .08);
+  --shadow-float: 0 4px 14px rgba(22, 24, 26, .10);
+  --drop: rgba(22, 24, 26, .16);
+  /* Parking states in the UI take the Panot map colours, so a label matches the line it describes. */
+  --st-ok: #1A7B46; --st-semi: #0B6F8F; --st-no: #C9362C; --st-nodata: #8F8A82; --st-bay: #2344C4;
+  --on-st: #FFFFFF; --on-st-nodata: #16181A;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pedra-50: #121416; --pedra-100: #1B1F22; --pedra-200: #0D0F11; --linia: #2A3035;
+    --tinta: #F4EFE6; --tinta-suau: #A7A39B;
+    --mar: #8FB2E8; --sobre-mar: #0D1A30; --mar-suau: #1C2A40; --focus: #F2C230;
+    --rajola-blau: #5C98DE; --rajola-groc: #F2C230; --rajola-groc-vora: #F2C230; --rajola-verd: #5FB57C; --rajola-vermell: #EE6A4F; --rajola-junta: #262B2F;
+    --tessela: #2E3337; --oct-fill: #1B1F22;
+    --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, .5); --shadow-float: 0 4px 14px rgba(0, 0, 0, .45); --drop: rgba(0, 0, 0, .55);
+    --st-ok: #4CC585; --st-semi: #3DB5DA; --st-no: #FF6B5E; --st-nodata: #8F8A82; --st-bay: #8398FF;
+    --on-st: #121416; --on-st-nodata: #121416;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --pedra-50: #121416; --pedra-100: #1B1F22; --pedra-200: #0D0F11; --linia: #2A3035;
+  --tinta: #F4EFE6; --tinta-suau: #A7A39B;
+  --mar: #8FB2E8; --sobre-mar: #0D1A30; --mar-suau: #1C2A40; --focus: #F2C230;
+  --rajola-blau: #5C98DE; --rajola-groc: #F2C230; --rajola-groc-vora: #F2C230; --rajola-verd: #5FB57C; --rajola-vermell: #EE6A4F; --rajola-junta: #262B2F;
+  --tessela: #2E3337; --oct-fill: #1B1F22;
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, .5); --shadow-float: 0 4px 14px rgba(0, 0, 0, .45); --drop: rgba(0, 0, 0, .55);
+  --st-ok: #4CC585; --st-semi: #3DB5DA; --st-no: #FF6B5E; --st-nodata: #8F8A82; --st-bay: #8398FF;
+  --on-st: #121416; --on-st-nodata: #121416;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-pedra-50: var(--pedra-50);
+  --color-pedra-100: var(--pedra-100);
+  --color-pedra-200: var(--pedra-200);
+  --color-linia: var(--linia);
+  --color-tinta: var(--tinta);
+  --color-tinta-suau: var(--tinta-suau);
+  --color-mar: var(--mar);
+  --color-sobre-mar: var(--sobre-mar);
+  --color-mar-suau: var(--mar-suau);
+  --font-display: "Space Grotesk Variable", "Helvetica Neue", system-ui, sans-serif;
+  --font-sans: "Manrope Variable", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; background: var(--pedra-50); color: var(--tinta);
+    font: 400 1rem/1.5 var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  svg.lucide { flex: none; }
+}
+
+@layer components {
+  .float { background: var(--pedra-100); border: 1px solid var(--linia); box-shadow: var(--shadow-float); }
+  .label { font: 700 13px/16px var(--font-sans); letter-spacing: .04em; text-transform: uppercase; }
+  .dato { font: 500 15px/20px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--tinta-suau); white-space: nowrap; }
+
+  .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 20px;
+    border: 0; border-radius: var(--radius-md); background: var(--mar); color: var(--sobre-mar); font: 700 1.0625rem/1.1 var(--font-sans);
+    text-decoration: none; text-align: center; }
+  .icon-btn { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--tinta); }
+  .icon-btn:hover { background: var(--pedra-200); }
+}

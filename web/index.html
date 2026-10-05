@@ -3,8 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>MotoBCN</title>
-    <meta name="description" content="Dónde aparcar la moto en Barcelona, también en la acera, según la ordenanza." />
+    <!-- The installed app opens here when it was installed before the app moved to app/. -->
+    <script>if (matchMedia("(display-mode: standalone)").matches) location.replace("app/");</script>
+    <title>MotoBCN · Dónde aparcar la moto en Barcelona</title>
+    <meta name="description" content="El mapa de cada acera y zona moto de Barcelona, con lo que permite la ordenanza en cada tramo. Gratis, sin registro." />
+    <meta name="theme-color" content="#F7F4EE" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/marca.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="alternate" hreflang="es" href="https://nestorcamposgestal.github.io/motobcn/" />
     <!-- Link previews (WhatsApp, Telegram, X): crawlers need absolute URLs. -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="MotoBCN · Dónde aparcar la moto en Barcelona" />
@@ -17,13 +24,191 @@
     <meta property="og:image:alt" content="Mapa de MotoBCN sobre el Eixample, con el icono y el nombre de la app." />
     <meta property="og:locale" content="es_ES" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#F7F4EE" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="/marca.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="landing">
+    <a class="skip" href="#main" data-t="skip">Saltar al contenido</a>
+
+    <header class="site-head">
+      <div class="wrap flex items-center gap-3 h-16">
+        <a href="./" class="flex items-center gap-2.5 mr-auto no-underline text-tinta">
+          <img src="/marca.svg" alt="" width="34" height="34" />
+          <span class="font-display font-semibold text-xl tracking-[-0.01em]">MotoBCN</span>
+        </a>
+        <div class="langs" role="group" aria-label="Idioma" data-ta="langs">
+          <button type="button" data-lang="es" lang="es">ES</button>
+          <button type="button" data-lang="ca" lang="ca">CA</button>
+          <button type="button" data-lang="en" lang="en">EN</button>
+        </div>
+        <a class="btn-ghost max-[520px]:hidden" href="app/" data-app data-t="open">Abrir el mapa</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero: the answer first, the city in the mosaic beside it, never behind the text. -->
+      <section class="wrap hero">
+        <div class="hero-text">
+          <p class="label text-mar m-0" data-t="kicker">Barcelona · Ordenança de circulació, art. 40</p>
+          <h1 class="hero-title">
+            <span data-t="h1a">Aparca la moto en Barcelona.</span>
+            <span class="text-mar" data-t="h1b">Sin dudas.</span>
+          </h1>
+          <p class="hero-lead" data-t="lead">El mapa de todas las aceras y zonas moto de la ciudad, con lo que permite la ordenanza en cada tramo.</p>
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mt-8">
+            <a class="btn-primary !px-7" href="app/" data-app>
+              <span data-t="open">Abrir el mapa</span>
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+            <a class="link-more" href="#como">
+              <span data-t="how">Cómo funciona</span>
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+            </a>
+          </div>
+          <p class="dato mt-6 m-0 !whitespace-normal" data-t="trust">Gratis · Sin registro · Castellano, català, English</p>
+        </div>
+        <div class="hero-art">
+          <canvas class="trencadis" aria-hidden="true"></canvas>
+          <figure class="phone phone-hero">
+            <img data-shot="hero" src="/landing/hero-es.webp" width="390" height="844" alt="La app con una acera seleccionada: semibatería, Avinguda Diagonal, acera de 7,4 m." data-talt="altHero" />
+          </figure>
+        </div>
+      </section>
+
+      <!-- The numbers behind the map. -->
+      <section class="wrap">
+        <dl class="stats">
+          <div><dt data-t="s1">kilómetros de acera medidos tramo a tramo</dt><dd data-t="v1">+2.500</dd></div>
+          <div><dt data-t="s2">zonas moto, con sus plazas</dt><dd data-t="v2">+17.800</dd></div>
+          <div><dt data-t="s3">reglas de la ordenanza en cada tramo</dt><dd>17</dd></div>
+        </dl>
+      </section>
+
+      <!-- 01: what it does. -->
+      <section class="wrap block" id="como" aria-labelledby="como-h">
+        <p class="kicker"><span>01</span><span data-t="k1">Qué hace</span></p>
+        <h2 class="h2" id="como-h" data-t="h2a">Todo lo que necesitas para aparcar, en un mapa.</h2>
+        <ul class="features">
+          <li>
+            <span class="tile" aria-hidden="true"><span class="bars"><i class="b-ok"></i><i class="b-semi"></i><i class="b-bay"></i><i class="b-no"></i></span></span>
+            <h3 data-t="f1">Dónde, de un vistazo</h3>
+            <p data-t="f1d">Cada tramo de acera tiene su color: verde o azul si puedes aparcar, rojo si no.</p>
+          </li>
+          <li>
+            <span class="tile" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></span>
+            <h3 data-t="f2">Y por qué</h3>
+            <p data-t="f2d">Toca una acera: te decimos cómo aparcar y qué artículo de la ordenanza se aplica.</p>
+          </li>
+          <li>
+            <span class="tile" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></span>
+            <h3 data-t="f3">Sitio cerca de ti</h3>
+            <p data-t="f3d">Las zonas moto y las aceras permitidas más cercanas, ordenadas por distancia.</p>
+          </li>
+          <li>
+            <span class="tile" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24"><path d="m18 14-1-3"/><path d="m3 9 6 2a2 2 0 0 1 2-2h2a2 2 0 0 1 1.99 1.81"/><path d="M8 17h3a1 1 0 0 0 1-1 6 6 0 0 1 6-6 1 1 0 0 0 1-1v-.75A5 5 0 0 0 17 5"/><circle cx="19" cy="17" r="3"/><circle cx="5" cy="17" r="3"/></svg></span>
+            <h3 data-t="f4">Vuelve a tu moto</h3>
+            <p data-t="f4d">Guarda dónde aparcas y vuelve andando sin buscarla.</p>
+          </li>
+        </ul>
+        <div class="gallery">
+          <figure>
+            <div class="phone"><img data-shot="near" src="/landing/near-es.webp" width="390" height="844" loading="lazy" alt="Cerca de ti: zonas moto ordenadas por distancia." data-talt="altNear" /></div>
+            <figcaption data-t="g1">Cerca de ti</figcaption>
+          </figure>
+          <figure>
+            <div class="phone"><img data-shot="zebra" src="/landing/zebra-es.webp" width="390" height="844" loading="lazy" alt="El mapa de cerca: aceras de colores, pasos de peatones y zonas moto con sus plazas." data-talt="altZebra" /></div>
+            <figcaption data-t="g2">Cada acera, a escala</figcaption>
+          </figure>
+          <figure>
+            <div class="phone"><img data-shot="moto" src="/landing/moto-es.webp" width="390" height="844" loading="lazy" alt="Tu moto: la calle donde aparcaste y el botón para volver." data-talt="altMoto" /></div>
+            <figcaption data-t="g3">Tu moto, guardada</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- 02: the ordinance, on the panot that the rule is about. -->
+      <section class="panot-band" aria-labelledby="ley-h">
+        <svg class="panot" aria-hidden="true"><defs>
+          <pattern id="panot" width="56" height="56" patternUnits="userSpaceOnUse">
+            <rect width="56" height="56" />
+            <circle cx="28" cy="18" r="6.5" /><circle cx="28" cy="38" r="6.5" /><circle cx="18" cy="28" r="6.5" /><circle cx="38" cy="28" r="6.5" />
+            <path d="M0 9a9 9 0 0 0 9-9M47 0a9 9 0 0 0 9 9M56 47a9 9 0 0 0-9 9M9 56a9 9 0 0 0-9-9" />
+          </pattern></defs><rect width="100%" height="100%" fill="url(#panot)" /></svg>
+        <div class="wrap block relative">
+          <p class="kicker"><span>02</span><span data-t="k2">La ordenanza en 30 segundos</span></p>
+          <h2 class="h2" id="ley-h" data-t="h2b">¿Cuánto mide la acera? Eso decide.</h2>
+          <div class="card ruler-card">
+            <div class="ruler" role="img" aria-label="Menos de 4,3 m: no se puede. De 4,3 a 6 m: en paralelo. Más de 6 m: en semibatería." data-ta="rulerAria">
+              <div class="seg seg-no"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></svg><span data-t="r1">No</span></div>
+              <div class="seg seg-ok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-t="r2">En paralelo</span></div>
+              <div class="seg seg-semi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18 11 6M13 18l6-12"/></svg><span data-t="r3">Semibatería</span></div>
+            </div>
+            <div class="ticks dato" aria-hidden="true"><span style="left:0">0 m</span><span style="left:53.75%">4,3 m</span><span style="left:75%">6 m</span><span style="right:0">+</span></div>
+            <p class="m-0 mt-6 text-tinta-suau max-w-[60ch]" data-t="rulerNote">Con la moto a medio metro del bordillo tienen que quedar 3 m libres para pasar. Por eso, en aceras de 4,3 m o menos no se puede aparcar.</p>
+          </div>
+          <div class="grid gap-4 mt-4 min-[860px]:grid-cols-2">
+            <div class="card">
+              <p class="tagx t-bay"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg><span data-t="bayTag">Zona moto</span></p>
+              <h3 class="h3" data-t="bayH">Siempre, la primera opción.</h3>
+              <p class="m-0 text-tinta-suau" data-t="bayD">Si hay una zona moto con sitio, la ordenanza la prefiere a la acera. El mapa te la señala con sus plazas.</p>
+            </div>
+            <div class="card">
+              <p class="tagx t-no"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></svg><span data-t="neverTag">Nunca</span></p>
+              <ul class="never">
+                <li data-t="n1">A menos de 2 m de un paso de peatones o de una parada.</li>
+                <li data-t="n2">Delante de carga y descarga, plazas PMR, bicis o escuelas.</li>
+                <li data-t="n3">En calles peatonales, carriles bici y ejes verdes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03: where the data comes from, and what it promises. -->
+      <section class="wrap block" aria-labelledby="datos-h">
+        <p class="kicker"><span>03</span><span data-t="k3">Datos abiertos</span></p>
+        <h2 class="h2" id="datos-h" data-t="h2c">Hecho con los datos del Ayuntamiento.</h2>
+        <p class="lead2" data-t="dataD">Cada acera se mide sobre la cartografía municipal y se cruza con las reservas, las paradas, las señales, los carriles bici, las escuelas y los hospitales. Nada de suposiciones: si no lo sabemos, te lo decimos.</p>
+        <ul class="chips">
+          <li data-t="c1">Cartografía 1:1000</li>
+          <li data-t="c2">Reservas de aparcamiento</li>
+          <li data-t="c3">Señales de tráfico</li>
+          <li data-t="c4">Paradas de bus y tranvía</li>
+          <li data-t="c5">Carriles bici</li>
+          <li data-t="c6">Calles peatonales</li>
+          <li data-t="c7">Escuelas y hospitales</li>
+          <li data-t="c8">Multas a motos</li>
+        </ul>
+        <p class="note" data-t="note">Orientativo: manda siempre la señalización. MotoBCN te explica la ordenanza, no garantiza que no te multen.</p>
+      </section>
+
+      <!-- Closing call: the brand blue, with the mosaic beside the text. -->
+      <section class="wrap pb-16">
+        <div class="cta">
+          <div class="cta-text">
+            <h2 class="h2 !text-sobre-mar m-0" data-t="ctaH">Tu próxima plaza, a un toque.</h2>
+            <p class="m-0 mt-3 opacity-90 max-w-[46ch]" data-t="ctaD">Ábrela en el móvil y añádela a la pantalla de inicio: en iPhone, Compartir y «Añadir a pantalla de inicio»; en Android, el menú y «Instalar app».</p>
+            <a class="btn-light mt-7" href="app/" data-app>
+              <span data-t="open">Abrir el mapa</span>
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+          </div>
+          <canvas class="trencadis cta-art" aria-hidden="true"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-foot">
+      <div class="wrap flex flex-col gap-4 py-10 min-[860px]:flex-row min-[860px]:items-start min-[860px]:justify-between">
+        <div class="flex items-center gap-2.5">
+          <img src="/marca.svg" alt="" width="28" height="28" />
+          <span class="font-display font-semibold">MotoBCN</span>
+          <span class="text-tinta-suau text-sm" data-t="made">· Hecho en Barcelona</span>
+        </div>
+        <div class="text-[13px] leading-[18px] text-tinta-suau max-w-[62ch] flex flex-col gap-2">
+          <p class="m-0">Font de les dades: Ajuntament de Barcelona, TMB, AMB, Powered by TRAM Barcelona <span data-t="and">y</span> © OpenStreetMap contributors (ODbL).</p>
+          <p class="m-0"><a href="https://github.com/nestorcamposgestal/motobcn" data-t="code">Código abierto en GitHub</a></p>
+        </div>
+      </div>
+    </footer>
+    <script type="module" src="/src/landing/main.ts"></script>
   </body>
 </html>

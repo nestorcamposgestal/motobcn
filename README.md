@@ -24,6 +24,8 @@ Requiere `uv` y `tippecanoe`.
     npm install
     npm run dev
 
+Dos páginas: la portada (`web/index.html`, `web/src/landing/`) en la raíz y la app del mapa (`web/app/index.html`, `web/src/main.tsx`) en `/app/`. Las capturas de la portada están en `web/public/landing/`, una por idioma.
+
 ## Publicación
 
 `.github/workflows/deploy.yml` compila la web y la publica en GitHub Pages en cada push a `main`. Los datos del mapa salen de la release `data`, porque CartoBCN corta las descargas grandes desde GitHub. Para actualizar los datos:

@@ -7,6 +7,8 @@ export default defineConfig({
   // Listen on every interface: a Windows browser reaches WSL that way, and so does a phone on the same network.
   server: { host: true },
   preview: { host: true },
+  // Two pages: the landing page at the root and the map app under app/.
+  build: { rollupOptions: { input: { home: "index.html", app: "app/index.html" } } },
   plugins: [
     react(),
     tailwindcss(),
@@ -17,7 +19,7 @@ export default defineConfig({
         short_name: "MotoBCN",
         description: "Dónde aparcar la moto en Barcelona, también en la acera.",
         lang: "es",
-        start_url: ".",
+        start_url: "app/",
         display: "standalone",
         background_color: "#F7F4EE",
         theme_color: "#1F3C6E",
@@ -31,7 +33,10 @@ export default defineConfig({
       workbox: {
         // The tiles are large and read with range requests: they stay on the network, never in the precache.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2,pbf}"],
-        globIgnores: ["**/*.pmtiles", "preview.jpg", "data/**", "**/*-{cyrillic,cyrillic-ext,greek,vietnamese}-*"],
+        globIgnores: ["**/*.pmtiles", "preview.jpg", "landing/**", "data/**", "**/*-{cyrillic,cyrillic-ext,greek,vietnamese}-*"],
+        // Offline, any app address opens the app; the landing page is precached as itself.
+        navigateFallback: "app/index.html",
+        navigateFallbackAllowlist: [/\/app\//],
       },
     }),
   ],
